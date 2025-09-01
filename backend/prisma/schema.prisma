@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model ContactForm {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  phone     String?
+  service   String?
+
+  createdAt DateTime @default(now())
+
+  @@map("contact_forms")
+}
+
+model Visitor {
+  id        String   @id @default(cuid())
+  ipAddress String?
+  userAgent String?
+  page      String?
+  referer   String?
+  count String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@map("visitors")
+}
+
+model DailyStats {
+  id           String   @id @default(cuid())
+  date         DateTime @unique @default(now())
+  totalVisits  Int      @default(0)
+  uniqueVisits Int      @default(0)
+  pageViews    String   @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("daily_stats")
+}
+
+// Add more models as needed
