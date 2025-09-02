@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
-import { Moon, Sun, Menu, X, Monitor, Shield } from 'lucide-react'
+import { Moon, Sun, Menu, X, Monitor, Shield, ShoppingCart } from 'lucide-react'
 import { useTheme } from './theme-provider'
+import { useCart } from '@/cart/Cartcontext'
 import { useState } from 'react'
 
 export function Header() {
   const { theme, setTheme } = useTheme()
+  const { cart } = useCart()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const toggleTheme = () => {
@@ -51,12 +53,31 @@ export function Header() {
               Services
             </Link>
             <Link
+              to="/products"
+              className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
+            >
+              Buy
+            </Link>
+            <Link
               to="/about"
               className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
             >
               About Us
             </Link>
           </nav>
+          
+          {/* Cart Icon */}
+          <Link
+            to="/cart"
+            className="relative inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 h-10 w-10"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {cart.totalItems > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                {cart.totalItems > 99 ? '99+' : cart.totalItems}
+              </span>
+            )}
+          </Link>
           
           {/* Theme Toggle */}
           <button
@@ -97,11 +118,26 @@ export function Header() {
               Services
             </Link>
             <Link
+              to="/products"
+              className="block py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Buy
+            </Link>
+            <Link
               to="/about"
               className="block py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
               onClick={() => setIsMenuOpen(false)}
             >
               About Us
+            </Link>
+            <Link
+              to="/cart"
+              className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Cart ({cart.totalItems})
             </Link>
           </div>
         </div>

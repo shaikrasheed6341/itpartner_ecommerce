@@ -7,16 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  fullName    String
+  phone       String
+  houseNumber String
+  street      String
+  area        String
+  city        String
+  state       String
+  pinCode      String
 
-  @@map("users")
 }
-
 model ContactForm {
   id        String   @id @default(cuid())
   name      String
@@ -29,6 +32,8 @@ model ContactForm {
 
   @@map("contact_forms")
 }
+
+
 
 model Visitor {
   id        String   @id @default(cuid())
@@ -55,4 +60,17 @@ model DailyStats {
   @@map("daily_stats")
 }
 
-// Add more models as needed
+model Product {
+  id         String   @id @default(uuid())
+  name       String
+  brand      String
+  image_url  String?
+  quantity   Int?
+  rate       Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("products")
+}
+
+
