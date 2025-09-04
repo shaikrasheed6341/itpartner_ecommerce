@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Edit, Trash2, Package, ShoppingCart, Minus, X } from 'lucide-react'
+import { Plus, Search, Package, ShoppingCart, Minus, X } from 'lucide-react'
 import { useCart } from '@/cart/Cartcontext'
 import { useNavigate } from 'react-router-dom'
+import { CartNotification } from '@/components/CartNotification'
 
 interface Product {
   id: string
@@ -21,7 +22,13 @@ export function Products() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [showCartSidebar, setShowCartSidebar] = useState(false)
-  const { addToCart, cart, removeFromCart, updateQuantity } = useCart()
+  const [showNotification, setShowNotification] = useState(false)
+  const [notificationSummary, setNotificationSummary] = useState({
+    totalAmount: 0,
+    totalItems: 0,
+    itemCount: 0
+  })
+  const { addToCart, cart, removeFromCart, updateQuantity, addMultipleToCart } = useCart()
   const navigate = useNavigate()
   
   // Form state
@@ -60,6 +67,39 @@ export function Products() {
     
     // Show success message
     alert(`${product.name} added to cart!`)
+  }
+
+  // Handle multiple items addition with notification
+  const handleAddMultipleToCart = async (items: Array<{ productId: string; quantity: number }>) => {
+    try {
+      const result = await addMultipleToCart(items)
+      
+      if (result.success && result.data?.currentRequestSummary) {
+        setNotificationSummary(result.data.currentRequestSummary)
+        setShowNotification(true)
+      } else {
+        alert(result.message || 'Failed to add items to cart')
+      }
+    } catch (error) {
+      console.error('Error adding multiple items:', error)
+      alert('Failed to add items to cart')
+    }
+  }
+
+  // Handle proceed to payment
+  const handleProceedToPayment = () => {
+    setShowNotification(false)
+    navigate('/payment', { 
+      state: { 
+        totalAmount: notificationSummary.totalAmount,
+        totalItems: notificationSummary.totalItems 
+      } 
+    })
+  }
+
+  // Handle close notification
+  const handleCloseNotification = () => {
+    setShowNotification(false)
   }
 
   // Fetch products
@@ -127,42 +167,6 @@ export function Products() {
     }
   }
 
-  // Handle delete
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return
-    
-    try {
-      const response = await fetch(`http://localhost:5000/api/products/${id}`, {
-        method: 'DELETE',
-      })
-
-      const data = await response.json()
-      
-      if (data.success) {
-        fetchProducts()
-        alert('Product deleted successfully!')
-      } else {
-        alert('Error: ' + data.error)
-      }
-    } catch (error) {
-      console.error('Error deleting product:', error)
-      alert('Failed to delete product')
-    }
-  }
-
-  // Handle edit
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product)
-    setFormData({
-      name: product.name,
-      brand: product.brand,
-      image_url: product.image_url || '',
-      quantity: product.quantity?.toString() || '',
-      rate: product.rate.toString()
-    })
-    setShowAddForm(true)
-  }
-
   // Reset form
   const resetForm = () => {
     setFormData({
@@ -196,9 +200,7 @@ export function Products() {
         <div className="flex gap-3">
           <button
             onClick={() => setShowCartSidebar(true)}
-            className="relative inline-flex items-center gap-2 px-4 py-2 bg-
-            
-            -600 text-white rounded-lg hover:bg-slate-500 hover:text-white transition-colors"
+            className="relative inline-flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-500 hover:text-white transition-colors"
           >
             <ShoppingCart className="h-4 w-4" />
             Cart ({cart.totalItems})
@@ -207,6 +209,21 @@ export function Products() {
                 {cart.totalItems > 99 ? '99+' : cart.totalItems}
               </span>
             )}
+          </button>
+          
+          <button
+            onClick={() => {
+              // Test with multiple items
+              const testItems = [
+                { productId: "2e0b64fe-f8ab-4988-888e-720736bff96e", quantity: 2 },
+                { productId: "ce882552-d09e-4d54-b26a-e0d5d9ba1f32", quantity: 1 }
+              ]
+              handleAddMultipleToCart(testItems)
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Package className="h-4 w-4" />
+            Add Multiple (Test)
           </button>
           
           <button
@@ -381,6 +398,12 @@ export function Products() {
                 </div>
                 
                 <div className="flex gap-2 p-2">
+                  <button 
+                    onClick={() => handleQuickAddToCart(product)}
+                    className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  >
+                    Quick Add
+                  </button>
                   
                   <button 
                     onClick={() => handleAddToCart(product)}
@@ -481,7 +504,7 @@ export function Products() {
                             onClick={() => removeFromCart(item.id)}
                             className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <X className="h-3 w-3" />
                           </button>
                         </div>
                       </div>
@@ -533,6 +556,16 @@ export function Products() {
           </div>
         </div>
       )}
+
+      {/* Cart Notification */}
+      <CartNotification
+        isOpen={showNotification}
+        onClose={handleCloseNotification}
+        onProceedToPayment={handleProceedToPayment}
+        summary={notificationSummary}
+      />
     </div>
   )
 }
+
+

@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import prisma from '../lib/prisma';
 
 // Initialize Resend with API key from environment variables
-const resend = new Resend(process.env.RESEND_API_KEY || 're_gm86tUNd_KFWXvc1zbfPVZb7XpA1UWzd5');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const submitContactForm = async (req: Request, res: Response) => {
   try {

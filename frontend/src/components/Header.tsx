@@ -1,13 +1,24 @@
 import { Link } from 'react-router-dom'
-import { Moon, Sun, Menu, X, Monitor, Shield, ShoppingCart } from 'lucide-react'
+import { Moon, Sun, Menu, X, Monitor, Shield, ShoppingCart, User, LogOut } from 'lucide-react'
 import { useTheme } from './theme-provider'
 import { useCart } from '@/cart/Cartcontext'
+import { useAuth } from '@/contexts/AuthContext'
 import { useState } from 'react'
 
 export function Header() {
   const { theme, setTheme } = useTheme()
-  const { cart } = useCart()
+  const { isAuthenticated, user, logout } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+
+  // Safely get cart context
+  let cart = { totalItems: 0 }
+  try {
+    const cartContext = useCart()
+    cart = cartContext.cart
+  } catch (error) {
+    // Cart context not available, use default values
+    console.warn('Cart context not available:', error)
+  }
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light')
@@ -79,6 +90,38 @@ export function Header() {
             )}
           </Link>
           
+          {/* Authentication */}
+          {isAuthenticated ? (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:block">
+                Hi, {user?.fullName?.split(' ')[0]}
+              </span>
+              <button
+                onClick={logout}
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 h-10 px-3"
+              >
+                <LogOut className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Link
+                to="/login"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 h-10 px-3"
+              >
+                <User className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Login</span>
+              </Link>
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 h-10 px-3 rounded-md"
+              >
+                <span className="hidden sm:inline">Register</span>
+              </Link>
+            </div>
+          )}
+          
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
@@ -139,6 +182,42 @@ export function Header() {
               <ShoppingCart className="h-4 w-4" />
               Cart ({cart.totalItems})
             </Link>
+            {isAuthenticated ? (
+              <>
+                <div className="py-2 text-sm text-zinc-600 dark:text-zinc-400">
+                  Hi, {user?.fullName?.split(' ')[0]}
+                </div>
+                <button
+                  onClick={() => {
+                    logout()
+                    setIsMenuOpen(false)
+                  }}
+                  className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400 w-full text-left"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <User className="h-4 w-4" />
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <User className="h-4 w-4" />
+                  Register
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

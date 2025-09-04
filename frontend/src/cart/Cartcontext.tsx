@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, ReactNode } from "react"
+import { createContext, useContext, useState, ReactNode, useCallback } from "react"
 
 interface CartItem {
   id: string
+  productId?: string
   name: string
   brand: string
   image_url?: string
@@ -18,6 +19,31 @@ interface CartState {
 interface CartContextType {
   cart: CartState
   addToCart: (item: Omit<CartItem, "quantity">) => void
+  addMultipleToCart: (items: Array<{ productId: string; quantity: number }>) => Promise<{
+    success: boolean;
+    message: string;
+    data?: {
+      currentRequestSummary: {
+        items: any[];
+        totalAmount: number;
+        totalItems: number;
+        itemCount: number;
+      };
+    };
+  }>
+  processCheckout: () => Promise<{
+    success: boolean;
+    message: string;
+    data?: {
+      orderSummary: {
+        items: any[];
+        totalAmount: number;
+        totalItems: number;
+        itemCount: number;
+      };
+    };
+  }>
+  fetchUserCart: () => Promise<void>
   removeFromCart: (id: string) => void
   updateQuantity: (id: string, quantity: number) => void
   clearCart: () => void
@@ -34,12 +60,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     setCart(prevCart => {
-      const existingItem = prevCart.items.find(cartItem => cartItem.id === item.id)
+      // Generate a unique ID for the cart item
+      const uniqueId = `${item.id}-${Date.now()}-${Math.random()}`
+      
+      // If item exists with same productId, increase quantity
+      const existingItem = prevCart.items.find(cartItem => cartItem.productId === item.id)
       
       if (existingItem) {
         // If item exists, increase quantity
         const updatedItems = prevCart.items.map(cartItem =>
-          cartItem.id === item.id
+          cartItem.productId === item.id
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         )
@@ -52,7 +82,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       } else {
         // If item does not exist, add new item with quantity 1
-        const newItem = { ...item, quantity: 1 }
+        const newItem = { 
+          ...item, 
+          id: uniqueId,
+          productId: item.id,
+          quantity: 1 
+        }
         
         return {
           ...prevCart,
@@ -116,10 +151,112 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  const addMultipleToCart = async (items: Array<{ productId: string; quantity: number }>) => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetch('http://localhost:5000/api/cart/add-multiple', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ items })
+      })
+
+      const result = await response.json()
+      return result
+    } catch (error) {
+      console.error('Error adding multiple items to cart:', error)
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to add items to cart'
+      }
+    }
+  }
+
+  const processCheckout = async () => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetch('http://localhost:5000/api/cart/process-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          totalAmount: cart.totalAmount,
+          totalItems: cart.totalItems
+        })
+      })
+
+      const result = await response.json()
+      console.log('Process checkout response:', result) // Debug log
+      return result
+    } catch (error) {
+      console.error('Error processing checkout:', error)
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to process checkout'
+      }
+    }
+  }
+
+  const fetchUserCart = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        throw new Error('Authentication required')
+      }
+
+      const response = await fetch('http://localhost:5000/api/cart', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const result = await response.json()
+      console.log('Fetch user cart response:', result) // Debug log
+
+      if (result.success && result.data) {
+        // Convert backend cart items to frontend format
+        const backendItems = result.data.items.map((item: any) => ({
+          id: item.id, // Use cart item's unique ID, not productId
+          productId: item.productId, // Keep productId for reference
+          name: item.product.name,
+          brand: item.product.brand,
+          image_url: item.product.image_url,
+          rate: item.product.rate,
+          quantity: item.quantity
+        }))
+
+        // Update frontend cart with backend data
+        setCart({
+          items: backendItems,
+          totalItems: result.data.totalItems,
+          totalAmount: result.data.totalAmount
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching user cart:', error)
+    }
+  }, [])
+
   return (
     <CartContext.Provider value={{
       cart,
       addToCart,
+      addMultipleToCart,
+      processCheckout,
+      fetchUserCart,
       removeFromCart,
       updateQuantity,
       clearCart
