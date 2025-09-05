@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { ThemeProvider } from '@/components/theme-provider'
 import { CartProvider } from '@/cart/Cartcontext'
 import { AuthProvider } from '@/contexts/AuthContext'
@@ -13,6 +13,39 @@ import { Cart } from '@/pages/Cart'
 import { Login } from '@/pages/Login'
 import { Register } from '@/pages/Register'
 import { Payment } from '@/pages/Payment'
+import { AdminDashboard } from '@/pages/AdminDashboard'
+import { AdminLogin } from '@/pages/AdminLogin'
+import { AdminProducts } from '@/pages/AdminProducts'
+import { AdminUsers } from '@/pages/AdminUsers'
+
+function AppContent() {
+  const location = useLocation()
+  const isAdminRoute = location.pathname.startsWith('/admin')
+
+  return (
+    <div className="min-h-screen bg-background">
+      {!isAdminRoute && <Header />}
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/add-product" element={<AddProduct />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/payment" element={<Payment />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+        </Routes>
+      </main>
+      {!isAdminRoute && <Footer />}
+    </div>
+  )
+}
 
 function App() {
   return (
@@ -20,23 +53,7 @@ function App() {
       <AuthProvider>
         <CartProvider>
           <Router>
-            <div className="min-h-screen bg-background">
-              <Header />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/products" element={<Products />} />
-                  <Route path="/add-product" element={<AddProduct />} />
-                  <Route path="/cart" element={<Cart />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/payment" element={<Payment />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
+            <AppContent />
           </Router>
         </CartProvider>
       </AuthProvider>

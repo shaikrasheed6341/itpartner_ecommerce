@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { register, login, getProfile } from '../controllers/auth';
-import { authenticateToken } from '../middleware/auth';
+import { register, login, getProfile, getAllUsers } from '../controllers/auth';
+import { authenticateToken, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -10,5 +10,8 @@ router.post('/login', login);
 
 // Protected routes
 router.get('/profile', authenticateToken, getProfile);
+
+// Admin only routes
+router.get('/users', requireAdmin, getAllUsers);
 
 export default router;

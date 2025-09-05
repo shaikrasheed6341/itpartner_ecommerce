@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom'
-import { Moon, Sun, Menu, X, Monitor, Shield, ShoppingCart, User, LogOut } from 'lucide-react'
+import { Moon, Sun, Menu, X, Shield, ShoppingCart, User, LogOut, ChevronDown } from 'lucide-react'
 import { useTheme } from './theme-provider'
 import { useCart } from '@/cart/Cartcontext'
 import { useAuth } from '@/contexts/AuthContext'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export function Header() {
   const { theme, setTheme } = useTheme()
-  const { isAuthenticated, user, logout } = useAuth()
+  const { isAuthenticated, user, logout, isAdmin } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Safely get cart context
   let cart = { totalItems: 0 }
@@ -27,6 +29,20 @@ export function Header() {
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
   }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsLoginDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -96,6 +112,15 @@ export function Header() {
               <span className="text-sm text-zinc-600 dark:text-zinc-400 hidden sm:block">
                 Hi, {user?.fullName?.split(' ')[0]}
               </span>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 h-10 px-3"
+                >
+                  <Shield className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">Admin</span>
+                </Link>
+              )}
               <button
                 onClick={logout}
                 className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 h-10 px-3"
@@ -105,20 +130,50 @@ export function Header() {
               </button>
             </div>
           ) : (
-            <div className="flex items-center space-x-2">
-              <Link
-                to="/login"
+            <div className="relative" ref={dropdownRef}>
+              {/* Login Dropdown Button */}
+              <button
+                onClick={() => setIsLoginDropdownOpen(!isLoginDropdownOpen)}
                 className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 h-10 px-3"
               >
                 <User className="h-4 w-4 mr-1" />
                 <span className="hidden sm:inline">Login</span>
-              </Link>
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 h-10 px-3 rounded-md"
-              >
-                <span className="hidden sm:inline">Register</span>
-              </Link>
+                <span className="sm:hidden">Login</span>
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </button>
+              
+              {/* Dropdown Menu */}
+              {isLoginDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 rounded-md shadow-lg border border-zinc-200 dark:border-zinc-700 z-50">
+                  <div className="py-1">
+                    <Link
+                      to="/login"
+                      className="flex items-center px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      onClick={() => setIsLoginDropdownOpen(false)}
+                    >
+                      <User className="h-4 w-4 mr-3" />
+                      Login as User
+                    </Link>
+                    <Link
+                      to="/admin/login"
+                      className="flex items-center px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      onClick={() => setIsLoginDropdownOpen(false)}
+                    >
+                      <Shield className="h-4 w-4 mr-3" />
+                      Login as Admin
+                    </Link>
+                    <div className="border-t border-zinc-200 dark:border-zinc-700 my-1"></div>
+                    <Link
+                      to="/register"
+                      className="flex items-center px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+                      onClick={() => setIsLoginDropdownOpen(false)}
+                    >
+                      <User className="h-4 w-4 mr-3" />
+                      Register
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
@@ -187,6 +242,16 @@ export function Header() {
                 <div className="py-2 text-sm text-zinc-600 dark:text-zinc-400">
                   Hi, {user?.fullName?.split(' ')[0]}
                 </div>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin Dashboard
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     logout()
@@ -200,14 +265,26 @@ export function Header() {
               </>
             ) : (
               <>
+                <div className="py-2 text-sm text-zinc-600 dark:text-zinc-400 font-medium">
+                  Are you an admin?
+                </div>
                 <Link
                   to="/login"
                   className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <User className="h-4 w-4" />
-                  Login
+                  Login as User
                 </Link>
+                <Link
+                  to="/admin/login"
+                  className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <Shield className="h-4 w-4" />
+                  Login as Admin
+                </Link>
+                <div className="border-t border-zinc-200 dark:border-zinc-700 my-2"></div>
                 <Link
                   to="/register"
                   className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"

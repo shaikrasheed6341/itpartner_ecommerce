@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Shield } from 'lucide-react'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -136,6 +136,21 @@ export function Login() {
             >
               Back to home
             </button>
+          </div>
+
+          {/* Admin Login Section */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-3">Are you an admin?</p>
+              <button
+                type="button"
+                onClick={() => navigate('/admin/login')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Admin Login
+              </button>
+            </div>
           </div>
         </form>
       </div>

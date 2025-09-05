@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { Plus, Search, Package, ShoppingCart, Minus, X } from 'lucide-react'
 import { useCart } from '@/cart/Cartcontext'
 import { useNavigate } from 'react-router-dom'
-import { CartNotification } from '@/components/CartNotification'
 
 interface Product {
   id: string
@@ -19,26 +18,9 @@ export function Products() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [showCartSidebar, setShowCartSidebar] = useState(false)
-  const [showNotification, setShowNotification] = useState(false)
-  const [notificationSummary, setNotificationSummary] = useState({
-    totalAmount: 0,
-    totalItems: 0,
-    itemCount: 0
-  })
-  const { addToCart, cart, removeFromCart, updateQuantity, addMultipleToCart } = useCart()
+  const { addToCart, cart, removeFromCart, updateQuantity } = useCart()
   const navigate = useNavigate()
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    name: '',
-    brand: '',
-    image_url: '',
-    quantity: '',
-    rate: ''
-  })
 
   // Handle add to cart with automatic navigation
   const handleAddToCart = (product: Product) => {
@@ -53,53 +35,6 @@ export function Products() {
     // Show success message and navigate to cart
     alert(`${product.name} added to cart!`)
     navigate('/cart')
-  }
-
-  // Handle quick add to cart (without navigation)
-  const handleQuickAddToCart = (product: Product) => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      brand: product.brand,
-      image_url: product.image_url,
-      rate: product.rate
-    })
-    
-    // Show success message
-    alert(`${product.name} added to cart!`)
-  }
-
-  // Handle multiple items addition with notification
-  const handleAddMultipleToCart = async (items: Array<{ productId: string; quantity: number }>) => {
-    try {
-      const result = await addMultipleToCart(items)
-      
-      if (result.success && result.data?.currentRequestSummary) {
-        setNotificationSummary(result.data.currentRequestSummary)
-        setShowNotification(true)
-      } else {
-        alert(result.message || 'Failed to add items to cart')
-      }
-    } catch (error) {
-      console.error('Error adding multiple items:', error)
-      alert('Failed to add items to cart')
-    }
-  }
-
-  // Handle proceed to payment
-  const handleProceedToPayment = () => {
-    setShowNotification(false)
-    navigate('/payment', { 
-      state: { 
-        totalAmount: notificationSummary.totalAmount,
-        totalItems: notificationSummary.totalItems 
-      } 
-    })
-  }
-
-  // Handle close notification
-  const handleCloseNotification = () => {
-    setShowNotification(false)
   }
 
   // Fetch products
@@ -125,66 +60,6 @@ export function Products() {
     fetchProducts()
   }, [searchTerm])
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    try {
-      const url = editingProduct 
-        ? `http://localhost:5000/api/products/${editingProduct.id}`
-        : 'http://localhost:5000/api/products'
-      
-      const method = editingProduct ? 'PUT' : 'POST'
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          brand: formData.brand,
-          image_url: formData.image_url || null,
-          quantity: formData.quantity ? parseInt(formData.quantity) : null,
-          rate: parseFloat(formData.rate)
-        }),
-      })
-
-      const data = await response.json()
-      
-      if (data.success) {
-        setShowAddForm(false)
-        setEditingProduct(null)
-        resetForm()
-        fetchProducts()
-        alert(editingProduct ? 'Product updated successfully!' : 'Product added successfully!')
-      } else {
-        alert('Error: ' + data.error)
-      }
-    } catch (error) {
-      console.error('Error saving product:', error)
-      alert('Failed to save product')
-    }
-  }
-
-  // Reset form
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      brand: '',
-      image_url: '',
-      quantity: '',
-      rate: ''
-    })
-  }
-
-  // Cancel form
-  const handleCancel = () => {
-    setShowAddForm(false)
-    setEditingProduct(null)
-    resetForm()
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
@@ -193,7 +68,7 @@ export function Products() {
             Products
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Manage your electronic products inventory
+            Browse and purchase electronic products
           </p>
         </div>
         
@@ -209,29 +84,6 @@ export function Products() {
                 {cart.totalItems > 99 ? '99+' : cart.totalItems}
               </span>
             )}
-          </button>
-          
-          <button
-            onClick={() => {
-              // Test with multiple items
-              const testItems = [
-                { productId: "2e0b64fe-f8ab-4988-888e-720736bff96e", quantity: 2 },
-                { productId: "ce882552-d09e-4d54-b26a-e0d5d9ba1f32", quantity: 1 }
-              ]
-              handleAddMultipleToCart(testItems)
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Package className="h-4 w-4" />
-            Add Multiple (Test)
-          </button>
-          
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add Product
           </button>
         </div>
       </div>
@@ -249,104 +101,6 @@ export function Products() {
           />
         </div>
       </div>
-
-      {/* Add/Edit Form */}
-      {showAddForm && (
-        <div className="mb-8 p-6 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
-          <h2 className="text-xl font-semibold mb-4 text-zinc-900 dark:text-zinc-100">
-            {editingProduct ? 'Edit Product' : 'Add New Product'}
-          </h2>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Product Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., CCTV Camera, 8GB RAM"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Brand *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.brand}
-                  onChange={(e) => setFormData({...formData, brand: e.target.value})}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Samsung, Kingston"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Rate (Price) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={formData.rate}
-                  onChange={(e) => setFormData({...formData, rate: e.target.value})}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0.00"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Quantity
-                </label>
-                <input
-                  type="number"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({...formData, quantity: e.target.value})}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Stock quantity"
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Image URL
-                </label>
-                <input
-                  type="url"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {editingProduct ? 'Update Product' : 'Add Product'}
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {/* Products Grid */}
       {loading ? (
@@ -397,17 +151,10 @@ export function Products() {
                   </span>
                 </div>
                 
-                <div className="flex gap-2 p-2">
-                  <button 
-                    onClick={() => handleQuickAddToCart(product)}
-                    className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
-                  >
-                    Quick Add
-                  </button>
-                  
+                <div className="p-2">
                   <button 
                     onClick={() => handleAddToCart(product)}
-                    className="flex-1 bg-slate-600 text-white py-2 rounded-lg hover:bg-slate-700 transition-colors text-sm"
+                    className="w-full bg-slate-600 text-white py-2 rounded-lg hover:bg-slate-700 transition-colors text-sm"
                   >
                     Add & View Cart
                   </button>
@@ -557,13 +304,6 @@ export function Products() {
         </div>
       )}
 
-      {/* Cart Notification */}
-      <CartNotification
-        isOpen={showNotification}
-        onClose={handleCloseNotification}
-        onProceedToPayment={handleProceedToPayment}
-        summary={notificationSummary}
-      />
     </div>
   )
 }

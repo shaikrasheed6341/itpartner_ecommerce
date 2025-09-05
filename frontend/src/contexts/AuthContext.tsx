@@ -11,13 +11,16 @@ interface User {
   city: string
   state: string
   pinCode: string
+  role: 'ADMIN' | 'USER'
 }
 
 interface AuthContextType {
   user: User | null
   token: string | null
   isAuthenticated: boolean
+  isAdmin: boolean
   login: (email: string, password: string) => Promise<boolean>
+  adminLogin: (email: string, password: string, otp?: string) => Promise<{ success: boolean; requiresOTP?: boolean; otp?: string }>
   register: (userData: RegisterData) => Promise<boolean>
   logout: () => void
   loading: boolean
@@ -92,6 +95,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const adminLogin = async (email: string, password: string, otp?: string): Promise<{ success: boolean; requiresOTP?: boolean; otp?: string }> => {
+    try {
+      setLoading(true)
+      
+      // First, check if OTP is required
+      const checkResponse = await fetch('http://localhost:5000/api/admin/check-login-requirements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      })
+
+      const checkData = await checkResponse.json()
+
+      if (!checkResponse.ok) {
+        return { success: false }
+      }
+
+      // If OTP is required but not provided, return the OTP
+      if (checkData.requiresOTP && !otp) {
+        return { 
+          success: false, 
+          requiresOTP: true, 
+          otp: checkData.otp 
+        }
+      }
+
+      // Proceed with login
+      const response = await fetch('http://localhost:5000/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, otp })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setUser(data.admin)
+        setToken(data.token)
+        localStorage.setItem('authToken', data.token)
+        localStorage.setItem('authUser', JSON.stringify(data.admin))
+        return { success: true }
+      } else {
+        console.error('Admin login failed:', data.message)
+        return { success: false }
+      }
+    } catch (error) {
+      console.error('Admin login error:', error)
+      return { success: false }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const register = async (userData: RegisterData): Promise<boolean> => {
     try {
       setLoading(true)
@@ -131,13 +191,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const isAuthenticated = !!token && !!user
+  const isAdmin = user?.role === 'ADMIN'
 
   return (
     <AuthContext.Provider value={{
       user,
       token,
       isAuthenticated,
+      isAdmin,
       login,
+      adminLogin,
       register,
       logout,
       loading

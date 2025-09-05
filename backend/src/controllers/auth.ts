@@ -92,7 +92,7 @@ export const register = async (req: Request, res: Response) => {
     // Generate JWT token
     const secret = process.env.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, role: 'USER' },
       secret,
       { expiresIn: '7d' }
     );
@@ -145,7 +145,7 @@ export const login = async (req: Request, res: Response) => {
     // Generate JWT token
     const secret = process.env.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
-      { userId: user.id, email: user.email },
+      { userId: user.id, email: user.email, role: (user as any).role || 'USER' },
       secret,
       { expiresIn: '7d' }
     );
@@ -162,7 +162,7 @@ export const login = async (req: Request, res: Response) => {
       city: user.city,
       state: user.state,
       pinCode: user.pinCode,
-      
+      role: (user as any).role || 'USER'
     };
 
     res.status(200).json({
@@ -184,22 +184,8 @@ export const getProfile = async (req: Request, res: Response) => {
     const userId = (req as any).user.userId;
 
     const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        phone: true,
-        houseNumber: true,
-        street: true,
-        area: true,
-        city: true,
-        state: true,
-        pinCode: true,
-        
-        
-      }
-    });
+      where: { id: userId }
+    }) as any;
 
     if (!user) {
       return res.status(404).json({
@@ -207,14 +193,81 @@ export const getProfile = async (req: Request, res: Response) => {
       });
     }
 
+    // Return user data (excluding password)
+    const userData = {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      phone: user.phone,
+      houseNumber: user.houseNumber,
+      street: user.street,
+      area: user.area,
+      city: user.city,
+      state: user.state,
+      pinCode: user.pinCode,
+      role: user.role || 'USER'
+    };
+
     res.status(200).json({
-      user
+      user: userData
     });
 
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({
       message: 'Internal server error'
+    });
+  }
+};
+
+// Get all users (Admin only)
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const { limit = 50, page = 1, search } = req.query;
+    const limitNum = parseInt(limit as string);
+    const pageNum = parseInt(page as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build where clause for search
+    const whereClause = search ? {
+      OR: [
+        { fullName: { contains: search as string, mode: 'insensitive' as const } },
+        { email: { contains: search as string, mode: 'insensitive' as const } },
+        { phone: { contains: search as string, mode: 'insensitive' as const } },
+      ],
+    } : {};
+
+    const users = await prisma.user.findMany({
+      where: whereClause,
+      take: limitNum,
+      skip,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const totalCount = await prisma.user.count({
+      where: whereClause,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        users,
+        pagination: {
+          currentPage: pageNum,
+          totalPages: Math.ceil(totalCount / limitNum),
+          totalCount,
+          limit: limitNum,
+        },
+      },
+    });
+
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch users',
     });
   }
 };
