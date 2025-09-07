@@ -1,49 +1,20 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 
-interface User {
-  id: string
-  email: string
-  fullName: string
-  phone: string
-  houseNumber: string
-  street: string
-  area: string
-  city: string
-  state: string
-  pinCode: string
-  role: 'ADMIN' | 'USER'
-}
+const AuthContext = createContext({
+  user: null as any,
+  token: null as any,
+  isAuthenticated: false,
+  isAdmin: false,
+  login: async (email: any, password: any) => false,
+  adminLogin: async (email: any, password: any, otp?: any) => ({ success: false }),
+  register: async (userData: any) => false,
+  logout: () => {},
+  loading: false
+})
 
-interface AuthContextType {
-  user: User | null
-  token: string | null
-  isAuthenticated: boolean
-  isAdmin: boolean
-  login: (email: string, password: string) => Promise<boolean>
-  adminLogin: (email: string, password: string, otp?: string) => Promise<{ success: boolean; requiresOTP?: boolean; otp?: string }>
-  register: (userData: RegisterData) => Promise<boolean>
-  logout: () => void
-  loading: boolean
-}
-
-interface RegisterData {
-  email: string
-  password: string
-  fullName: string
-  phone: string
-  houseNumber: string
-  street: string
-  area: string
-  city: string
-  state: string
-  pinCode: string
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(null)
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [token, setToken] = useState(null)
   const [loading, setLoading] = useState(true)
 
   // Check for existing token on app load
@@ -64,10 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email, password) => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:3000/api/auth/login', {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,15 +47,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       const data = await response.json()
+      console.log('Login response:', data)
 
       if (response.ok) {
-        setUser(data.user)
-        setToken(data.token)
-        localStorage.setItem('authToken', data.token)
-        localStorage.setItem('authUser', JSON.stringify(data.user))
+        setUser(data.data.user)
+        setToken(data.data.token)
+        localStorage.setItem('authToken', data.data.token)
+        localStorage.setItem('authUser', JSON.stringify(data.data.user))
+        console.log('Login successful, user set:', data.data.user)
         return true
       } else {
-        console.error('Login failed:', data.message)
+        console.error('Login failed:', data.error || data.message)
         return false
       }
     } catch (error) {
@@ -95,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const adminLogin = async (email: string, password: string, otp?: string): Promise<{ success: boolean; requiresOTP?: boolean; otp?: string }> => {
+  const adminLogin = async (email, password, otp) => {
     try {
       setLoading(true)
       
@@ -115,11 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // If OTP is required but not provided, return the OTP
-      if (checkData.requiresOTP && !otp) {
+      if (checkData.data && checkData.data.requiresOTP && !otp) {
         return { 
           success: false, 
           requiresOTP: true, 
-          otp: checkData.otp 
+          otp: checkData.data.otp 
         }
       }
 
@@ -135,13 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (response.ok) {
-        setUser(data.admin)
-        setToken(data.token)
-        localStorage.setItem('authToken', data.token)
-        localStorage.setItem('authUser', JSON.stringify(data.admin))
+        setUser(data.data.admin)
+        setToken(data.data.token)
+        localStorage.setItem('authToken', data.data.token)
+        localStorage.setItem('authUser', JSON.stringify(data.data.admin))
         return { success: true }
       } else {
-        console.error('Admin login failed:', data.message)
+        console.error('Admin login failed:', data.error || data.message)
         return { success: false }
       }
     } catch (error) {
@@ -152,10 +125,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const register = async (userData: RegisterData): Promise<boolean> => {
+  const register = async (userData) => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,13 +139,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (response.ok) {
-        setUser(data.user)
-        setToken(data.token)
-        localStorage.setItem('authToken', data.token)
-        localStorage.setItem('authUser', JSON.stringify(data.user))
+        setUser(data.data.user)
+        setToken(data.data.token)
+        localStorage.setItem('authToken', data.data.token)
+        localStorage.setItem('authUser', JSON.stringify(data.data.user))
         return true
       } else {
-        console.error('Registration failed:', data.message)
+        console.error('Registration failed:', data.error || data.message)
         return false
       }
     } catch (error) {

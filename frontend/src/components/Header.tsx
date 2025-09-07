@@ -86,10 +86,10 @@ export function Header() {
               Buy
             </Link>
             <Link
-              to="/about"
+              to="/orders"
               className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
             >
-              About Us
+              Orders
             </Link>
           </nav>
           
@@ -223,11 +223,11 @@ export function Header() {
               Buy
             </Link>
             <Link
-              to="/about"
+              to="/orders"
               className="block py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
               onClick={() => setIsMenuOpen(false)}
             >
-              About Us
+              Orders
             </Link>
             <Link
               to="/cart"

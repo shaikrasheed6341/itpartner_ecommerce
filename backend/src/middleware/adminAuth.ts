@@ -1,29 +1,92 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '../generated/prisma';
 
-interface AdminAuthRequest extends Request {
-  user?: any;
-}
+const prisma = new PrismaClient();
 
-export const authenticateAdmin = (req: AdminAuthRequest, res: Response, next: NextFunction) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  if (!token) {
-    return res.status(401).json({ message: 'Access token required' });
-  }
-
+export const adminAuth = async (req: any, res: any, next: NextFunction) => {
   try {
-    const secret = process.env.JWT_SECRET || 'your-secret-key';
-    const decoded = jwt.verify(token, secret) as any;
+    const authHeader = req.headers.authorization;
     
-    if (decoded.type !== 'admin' || decoded.role !== 'ADMIN') {
-      return res.status(403).json({ message: 'Admin access required' });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. No token provided or invalid format.'
+      });
     }
+
+    const token = authHeader.substring(7);
     
-    req.user = decoded;
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. No token provided.'
+      });
+    }
+
+    // Verify JWT token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+    
+    if (!decoded.adminId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. Invalid token.'
+      });
+    }
+
+    // Check if admin exists in database
+    const admin = await prisma.admin.findUnique({
+      where: { id: decoded.adminId },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        isFirstLogin: true
+      }
+    });
+
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. Admin not found.'
+      });
+    }
+
+    // Add admin info to request object
+    req.admin = {
+      id: admin.id,
+      email: admin.email,
+      fullName: admin.fullName,
+      role: 'ADMIN'
+    };
+
     next();
+
   } catch (error) {
-    return res.status(403).json({ message: 'Invalid or expired token' });
+    console.error('Admin auth error:', error);
+    
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. Invalid token.'
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error during authentication.'
+    });
   }
 };
+
+export const requireAdminAuth = (req: any, res: any, next: NextFunction) => {
+  if (!req.admin) {
+    return res.status(401).json({
+      success: false,
+      message: 'Admin authentication required.'
+    });
+  }
+  next();
+};
+
+

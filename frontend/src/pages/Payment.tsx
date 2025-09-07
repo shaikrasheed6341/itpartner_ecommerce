@@ -45,7 +45,7 @@ export function Payment() {
 
     try {
       // Step 1: Create order with cart total amount
-      const orderResponse = await fetch('http://localhost:3000/api/orders/create', {
+      const orderResponse = await fetch('http://localhost:5000/api/orders/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -62,7 +62,7 @@ export function Payment() {
       setOrderId(createdOrderId)
 
       // Step 2: Create Razorpay order
-      const razorpayResponse = await fetch('http://localhost:3000/api/orders/razorpay/create', {
+      const razorpayResponse = await fetch('http://localhost:5000/api/orders/razorpay/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -90,7 +90,7 @@ export function Payment() {
         handler: async function (response: any) {
           try {
             // Step 4: Verify payment
-            const verifyResponse = await fetch('http://localhost:3000/api/orders/razorpay/verify', {
+            const verifyResponse = await fetch('http://localhost:5000/api/orders/razorpay/verify', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -104,11 +104,14 @@ export function Payment() {
             })
 
             if (verifyResponse.ok) {
-              setPaymentSuccess(true)
-              // Clear cart after successful payment
-              setTimeout(() => {
-                navigate('/')
-              }, 3000)
+              const verifyData = await verifyResponse.json()
+              // Payment successful - redirect to success page with order data
+              navigate('/payment-success', { 
+                state: { 
+                  orderData: verifyData.data,
+                  paymentData: verifyData.data.payment
+                } 
+              })
             } else {
               alert('Payment verification failed. Please contact support.')
             }

@@ -11,7 +11,7 @@ router.post('/login', login);
 // Protected routes
 router.get('/profile', authenticateToken, getProfile);
 
-// Admin only routes
-router.get('/users', requireAdmin, getAllUsers);
+// Public routes for user data
+router.get('/users', getAllUsers);
 
 export default router;

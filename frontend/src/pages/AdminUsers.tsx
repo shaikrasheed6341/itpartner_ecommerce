@@ -27,42 +27,20 @@ export function AdminUsers() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
-  // Redirect if not admin or no token
-  useEffect(() => {
-    if (!isAdmin) {
-      navigate('/admin/login')
-      return
-    }
-    
-    // Check if admin token exists
-    if (!token) {
-      alert('Admin authentication required. Please login again.')
-      navigate('/admin/login')
-    }
-  }, [isAdmin, token, navigate])
+  // No authentication required for viewing users
 
   // Fetch users
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5000/api/auth/users', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      const response = await fetch('http://localhost:5000/api/auth/users')
       const data = await response.json()
       
       if (data.success) {
         setUsers(data.data.users || [])
       } else {
-        if (response.status === 401 || response.status === 403) {
-          alert('Authentication failed. Please login again.')
-          logout()
-          navigate('/admin/login')
-        } else {
-          console.error('Failed to fetch users:', data.error)
-          setUsers([])
-        }
+        console.error('Failed to fetch users:', data.error)
+        setUsers([])
       }
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -74,7 +52,7 @@ export function AdminUsers() {
 
   useEffect(() => {
     fetchUsers()
-  }, [token])
+  }, [])
 
   // Filter users based on search
   const filteredUsers = users.filter(user =>
@@ -83,9 +61,7 @@ export function AdminUsers() {
     user.phone.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  if (!isAdmin) {
-    return null
-  }
+  // No authentication required - show page for everyone
 
   return (
     <AdminLayout>

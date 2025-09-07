@@ -28,16 +28,18 @@ export function Login() {
       return
     }
 
-    const success = await login(email, password)
-    
-    if (success) {
-      // Redirect to the intended page or payment page
-      navigate(from === '/' ? '/payment' : from, { replace: true })
-    } else {
+    try {
+      console.log('Attempting login with:', { email })
+      await login(email, password)
+      console.log('Login successful, navigating to:', from === '/' ? '/' : from)
+      // Redirect to the intended page or home page
+      navigate(from === '/' ? '/' : from, { replace: true })
+    } catch (error) {
+      console.error('Login failed:', error)
       setError('Invalid email or password')
+    } finally {
+      setIsLoading(false)
     }
-    
-    setIsLoading(false)
   }
 
   return (

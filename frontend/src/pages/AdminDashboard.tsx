@@ -31,6 +31,13 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    brand: '',
+    image_url: '',
+    quantity: '',
+    rate: ''
+  })
 
   // Redirect if not admin
   useEffect(() => {
@@ -126,7 +133,73 @@ export function AdminDashboard() {
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product)
+    setFormData({
+      name: product.name,
+      brand: product.brand,
+      image_url: product.image_url || '',
+      quantity: product.quantity?.toString() || '',
+      rate: product.rate.toString()
+    })
     setShowAddForm(true)
+  }
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    try {
+      const productData = {
+        name: formData.name,
+        brand: formData.brand,
+        image_url: formData.image_url || undefined,
+        quantity: formData.quantity ? parseInt(formData.quantity) : undefined,
+        rate: parseFloat(formData.rate)
+      }
+
+      const url = editingProduct 
+        ? `http://localhost:5000/api/products/${editingProduct.id}`
+        : 'http://localhost:5000/api/products'
+      
+      const method = editingProduct ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(productData)
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        await fetchProducts() // Refresh products list
+        resetForm()
+        alert(editingProduct ? 'Product updated successfully!' : 'Product added successfully!')
+      } else {
+        if (response.status === 401 || response.status === 403) {
+          alert('Authentication failed. Please login again.')
+          navigate('/admin/login')
+        } else {
+          alert(`Error: ${data.error}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error saving product:', error)
+      alert('Failed to save product. Please try again.')
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      brand: '',
+      image_url: '',
+      quantity: '',
+      rate: ''
+    })
+    setShowAddForm(false)
+    setEditingProduct(null)
   }
 
   if (!isAuthenticated || !isAdmin) {
@@ -300,12 +373,7 @@ export function AdminDashboard() {
                 {editingProduct ? 'Edit Product' : 'Add New Product'}
               </h3>
               
-              <form onSubmit={(e) => {
-                e.preventDefault()
-                // Handle form submission here
-                setShowAddForm(false)
-                setEditingProduct(null)
-              }}>
+              <form onSubmit={handleFormSubmit}>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -313,7 +381,8 @@ export function AdminDashboard() {
                     </label>
                     <input
                       type="text"
-                      defaultValue={editingProduct?.name || ''}
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
                       className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-zinc-100"
                       required
                     />
@@ -325,7 +394,8 @@ export function AdminDashboard() {
                     </label>
                     <input
                       type="text"
-                      defaultValue={editingProduct?.brand || ''}
+                      value={formData.brand}
+                      onChange={(e) => setFormData({...formData, brand: e.target.value})}
                       className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-zinc-100"
                       required
                     />
@@ -338,7 +408,8 @@ export function AdminDashboard() {
                     <input
                       type="number"
                       step="0.01"
-                      defaultValue={editingProduct?.rate || ''}
+                      value={formData.rate}
+                      onChange={(e) => setFormData({...formData, rate: e.target.value})}
                       className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-zinc-100"
                       required
                     />
@@ -350,7 +421,8 @@ export function AdminDashboard() {
                     </label>
                     <input
                       type="number"
-                      defaultValue={editingProduct?.quantity || ''}
+                      value={formData.quantity}
+                      onChange={(e) => setFormData({...formData, quantity: e.target.value})}
                       className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-zinc-100"
                     />
                   </div>
@@ -361,7 +433,8 @@ export function AdminDashboard() {
                     </label>
                     <input
                       type="url"
-                      defaultValue={editingProduct?.image_url || ''}
+                      value={formData.image_url}
+                      onChange={(e) => setFormData({...formData, image_url: e.target.value})}
                       className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-700 dark:text-zinc-100"
                     />
                   </div>
@@ -370,10 +443,7 @@ export function AdminDashboard() {
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowAddForm(false)
-                      setEditingProduct(null)
-                    }}
+                    onClick={resetForm}
                     className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
                   >
                     Cancel

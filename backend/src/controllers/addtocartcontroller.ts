@@ -1,268 +1,14 @@
-import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from '../generated/prisma';
 
 const prisma = new PrismaClient();
 
-interface AuthRequest extends Request {
-  user?: any;
-}
-
-// Add product to cart
-export const addToCart = async (req: AuthRequest, res: Response) => {
+export const calculateCartTotals = async (userId: string) => {
   try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
-      });
-    }
-
-    const userId = req.user.userId;
-    const { productId, quantity = 1 } = req.body;
-
-    // Validate input
-    if (!productId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Product ID is required' 
-      });
-    }
-
-    if (!quantity || quantity <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Quantity must be greater than 0' 
-      });
-    }
-
-    // Check if product exists
-    const product = await prisma.product.findUnique({
-      where: { id: productId }
-    });
-
-    if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Product not found' 
-      });
-    }
-
-    // Always create new cart entry (allow duplicates)
-    const cartItem = await prisma.cart.create({
-      data: {
-        userId: userId,
-        productId: productId,
-        quantity: quantity
+    // Get all cart items for the user with product details
+    const cartItems = await prisma.cart.findMany({
+      where: {
+        userId: userId
       },
-      include: {
-        product: true
-      }
-    });
-
-    // Calculate item total
-    const itemTotal = cartItem.quantity * cartItem.product.rate;
-
-    res.status(201).json({
-      success: true,
-      message: 'Item added to cart successfully',
-      data: {
-        cartItem: {
-          id: cartItem.id,
-          productId: cartItem.productId,
-          quantity: cartItem.quantity,
-          itemTotal: itemTotal,
-          product: {
-            id: cartItem.product.id,
-            name: cartItem.product.name,
-            brand: cartItem.product.brand,
-            image_url: cartItem.product.image_url,
-            rate: cartItem.product.rate
-          }
-        },
-        // Current item total only
-        currentItemSummary: {
-          totalAmount: itemTotal,
-          totalItems: cartItem.quantity,
-          itemCount: 1
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error adding to cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to add item to cart', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
-  }
-};
-
-// Add multiple products to cart
-export const addMultipleToCart = async (req: AuthRequest, res: Response) => {
-  try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
-      });
-    }
-
-    const userId = req.user.userId;
-    const { items } = req.body;
-
-    // Validate input
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Items array is required and must not be empty' 
-      });
-    }
-
-    // Validate each item
-    for (const item of items) {
-      if (!item.productId) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Product ID is required for each item' 
-        });
-      }
-      if (!item.quantity || item.quantity <= 0) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Quantity must be greater than 0 for each item' 
-        });
-      }
-    }
-
-    const results = [];
-    const errors = [];
-
-    // Process each item
-    for (const item of items) {
-      try {
-        // Check if product exists
-        const product = await prisma.product.findUnique({
-          where: { id: item.productId }
-        });
-
-        if (!product) {
-          errors.push({
-            productId: item.productId,
-            error: 'Product not found'
-          });
-          continue;
-        }
-
-        // Always create new cart entry (allow duplicates)
-        const cartItem = await prisma.cart.create({
-          data: {
-            userId: userId,
-            productId: item.productId,
-            quantity: item.quantity
-          },
-          include: {
-            product: true
-          }
-        });
-
-        // Calculate item total based on cart quantity
-        const itemTotal = cartItem.quantity * cartItem.product.rate;
-
-        results.push({
-          productId: item.productId,
-          success: true,
-          data: {
-            cartItem: {
-              id: cartItem.id,
-              productId: cartItem.productId,
-              quantity: cartItem.quantity,
-              itemTotal: itemTotal,
-              product: {
-                id: cartItem.product.id,
-                name: cartItem.product.name,
-                brand: cartItem.product.brand,
-                image_url: cartItem.product.image_url,
-                rate: cartItem.product.rate
-              }
-            }
-          }
-        });
-
-      } catch (error) {
-        errors.push({
-          productId: item.productId,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    }
-
-    // Calculate totals only for current request items (not previous cart)
-    let currentRequestTotal = 0;
-    let currentRequestItems = 0;
-
-    const currentItemsWithTotals = results.map(result => {
-      const itemTotal = result.data.cartItem.itemTotal;
-      currentRequestTotal += itemTotal;
-      currentRequestItems += result.data.cartItem.quantity;
-
-      return {
-        id: result.data.cartItem.id,
-        productId: result.data.cartItem.productId,
-        quantity: result.data.cartItem.quantity,
-        itemTotal: itemTotal,
-        product: result.data.cartItem.product
-      };
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Multiple items processed',
-      data: {
-        successful: results,
-        failed: errors,
-        totalProcessed: items.length,
-        successfulCount: results.length,
-        failedCount: errors.length,
-        // Current request totals only
-        currentRequestSummary: {
-          items: currentItemsWithTotals,
-          totalAmount: currentRequestTotal,
-          totalItems: currentRequestItems,
-          itemCount: currentItemsWithTotals.length
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error adding multiple items to cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to add items to cart', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
-  }
-};
-
-// Process checkout and calculate order summary
-export const processCheckout = async (req: AuthRequest, res: Response) => {
-  try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
-      });
-    }
-
-    const userId = req.user.userId;
-    const { totalAmount, totalItems } = req.body;
-
-    // Get current cart items from database to ensure accuracy
-    const currentCartItems = await prisma.cart.findMany({
-      where: { userId: userId },
       include: {
         product: {
           select: {
@@ -270,250 +16,348 @@ export const processCheckout = async (req: AuthRequest, res: Response) => {
             name: true,
             brand: true,
             image_url: true,
-            rate: true,
-            quantity: true
+            rate: true
           }
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
       }
     });
 
-    // Check if cart is empty
-    if (currentCartItems.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cart is empty. Please add items to cart before checkout.' 
-      });
-    }
+    // Calculate totals
+    let totalAmount = 0;
+    let totalItems = 0;
 
-    // Calculate actual totals from database
-    let actualTotalAmount = 0;
-    let actualTotalItems = 0;
-
-    const orderItems = currentCartItems.map(item => {
+    const items = cartItems.map(item => {
       const itemTotal = item.quantity * item.product.rate;
-      actualTotalAmount += itemTotal;
-      actualTotalItems += item.quantity;
+      totalAmount += itemTotal;
+      totalItems += item.quantity;
 
       return {
         id: item.id,
         productId: item.productId,
         quantity: item.quantity,
-        itemTotal: itemTotal,
         product: item.product
       };
     });
 
-    // Create order summary
-    const orderSummary = {
-      items: orderItems,
-      totalAmount: actualTotalAmount,
-      totalItems: actualTotalItems,
-      itemCount: currentCartItems.length,
-      processedAt: new Date().toISOString()
+    return {
+      items,
+      totalAmount: Math.round(totalAmount * 100) / 100, // Round to 2 decimal places
+      totalItems,
+      itemCount: items.length
     };
 
-    res.status(200).json({
-      success: true,
-      message: 'Checkout processed successfully',
-      data: {
-        orderSummary: orderSummary,
-        // Compare frontend vs backend totals
-        totalsComparison: {
-          frontendTotal: totalAmount || 0,
-          backendTotal: actualTotalAmount,
-          frontendItems: totalItems || 0,
-          backendItems: actualTotalItems,
-          totalsMatch: (totalAmount || 0) === actualTotalAmount && (totalItems || 0) === actualTotalItems
+  } catch (error) {
+    console.error('Error calculating cart totals:', error);
+    throw new Error('Failed to calculate cart totals');
+  }
+};
+
+export const addToCart = async (userId: string, productId: string, quantity: number = 1) => {
+  try {
+    // Check if product exists
+    const product = await prisma.product.findUnique({
+      where: { id: productId }
+    });
+
+    if (!product) {
+      throw new Error('Product not found');
+    }
+
+    // Check if item already exists in cart
+    const existingCartItem = await prisma.cart.findFirst({
+      where: {
+        userId: userId,
+        productId: productId
+      }
+    });
+
+    if (existingCartItem) {
+      // Update quantity
+      const updatedCartItem = await prisma.cart.update({
+        where: { id: existingCartItem.id },
+        data: { quantity: existingCartItem.quantity + quantity },
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              brand: true,
+              image_url: true,
+              rate: true
+            }
+          }
+        }
+      });
+
+      return updatedCartItem;
+    } else {
+      // Create new cart item
+      const newCartItem = await prisma.cart.create({
+        data: {
+          userId: userId,
+          productId: productId,
+          quantity: quantity
+        },
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              brand: true,
+              image_url: true,
+              rate: true
+            }
+          }
+        }
+      });
+
+      return newCartItem;
+    }
+
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    throw new Error('Failed to add item to cart');
+  }
+};
+
+export const removeFromCart = async (userId: string, cartItemId: string) => {
+  try {
+    const deletedItem = await prisma.cart.delete({
+      where: {
+        id: cartItemId,
+        userId: userId
+      }
+    });
+
+    return deletedItem;
+
+  } catch (error) {
+    console.error('Error removing from cart:', error);
+    throw new Error('Failed to remove item from cart');
+  }
+};
+
+export const updateCartQuantity = async (userId: string, cartItemId: string, quantity: number) => {
+  try {
+    if (quantity <= 0) {
+      // Remove item if quantity is 0 or negative
+      return await removeFromCart(userId, cartItemId);
+    }
+
+    const updatedItem = await prisma.cart.update({
+      where: {
+        id: cartItemId,
+        userId: userId
+      },
+      data: { quantity },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            brand: true,
+            image_url: true,
+            rate: true
+          }
         }
       }
     });
 
+    return updatedItem;
+
   } catch (error) {
-    console.error('Error processing checkout:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to process checkout', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    console.error('Error updating cart quantity:', error);
+    throw new Error('Failed to update cart quantity');
   }
 };
 
-// Get user's cart with total calculations
-export const getUserCart = async (req: AuthRequest, res: Response) => {
+export const clearCart = async (userId: string) => {
   try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
-      });
-    }
+    const result = await prisma.cart.deleteMany({
+      where: { userId: userId }
+    });
 
+    return result;
+
+  } catch (error) {
+    console.error('Error clearing cart:', error);
+    throw new Error('Failed to clear cart');
+  }
+};
+
+// Express controller functions
+export const addToCartController = async (req: any, res: any) => {
+  try {
     const userId = req.user.userId;
+    const { productId, quantity = 1 } = req.body;
 
-    // Use the utility function to calculate cart totals
-    const cartData = await calculateCartTotals(userId);
-
-    res.status(200).json({
+    const result = await addToCart(userId, productId, quantity);
+    
+    res.json({
       success: true,
-      message: 'Cart retrieved successfully',
-      data: cartData
+      message: 'Item added to cart successfully',
+      data: result
     });
-
   } catch (error) {
-    console.error('Error getting cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to retrieve cart', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    console.error('Error in addToCartController:', error);
+    res.status(500).json({
+      success: false,
+      error: (error as any).message || 'Failed to add item to cart'
     });
   }
 };
 
-// Update cart item quantity
-export const updateCartItem = async (req: AuthRequest, res: Response) => {
+export const getCartController = async (req: any, res: any) => {
   try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
+    const userId = req.user.userId;
+    const result = await calculateCartTotals(userId);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Error in getCartController:', error);
+    res.status(500).json({
+      success: false,
+      error: (error as any).message || 'Failed to get cart'
+    });
+  }
+};
+
+export const removeFromCartController = async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+    const { productId } = req.params;
+
+    // Find the cart item by productId
+    const cartItem = await prisma.cart.findFirst({
+      where: {
+        userId: userId,
+        productId: productId
+      }
+    });
+
+    if (!cartItem) {
+      return res.status(404).json({
+        success: false,
+        error: 'Cart item not found'
       });
     }
 
+    const result = await removeFromCart(userId, cartItem.id);
+    
+    res.json({
+      success: true,
+      message: 'Item removed from cart successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error in removeFromCartController:', error);
+    res.status(500).json({
+      success: false,
+      error: (error as any).message || 'Failed to remove item from cart'
+    });
+  }
+};
+
+export const updateCartItemQuantityController = async (req: any, res: any) => {
+  try {
     const userId = req.user.userId;
     const { productId } = req.params;
     const { quantity } = req.body;
 
-    // Validate input
-    if (!quantity || quantity <= 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Quantity must be greater than 0' 
-      });
-    }
-
-    // Update cart item
-    const cartItem = await prisma.cart.update({
+    // Find the cart item by productId
+    const cartItem = await prisma.cart.findFirst({
       where: {
-        userId_productId: {
-          userId: userId,
-          productId: productId
-        }
-      },
-      data: {
-        quantity: quantity
-      },
-      include: {
-        product: true
+        userId: userId,
+        productId: productId
       }
     });
 
-    const itemTotal = cartItem.quantity * cartItem.product.rate;
-
-    res.status(200).json({
-      success: true,
-      message: 'Cart item updated successfully',
-      data: {
-        cartItem: {
-          id: cartItem.id,
-          productId: cartItem.productId,
-          quantity: cartItem.quantity,
-          itemTotal: itemTotal,
-          product: cartItem.product
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Error updating cart item:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update cart item', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
-  }
-};
-
-// Remove item from cart
-export const removeFromCart = async (req: AuthRequest, res: Response) => {
-  try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
+    if (!cartItem) {
+      return res.status(404).json({
+        success: false,
+        error: 'Cart item not found'
       });
     }
 
-    const userId = req.user.userId;
-    const { productId } = req.params;
-
-    // Remove cart item
-    await prisma.cart.delete({
-      where: {
-        userId_productId: {
-          userId: userId,
-          productId: productId
-        }
-      }
-    });
-
-    res.status(200).json({
+    const result = await updateCartQuantity(userId, cartItem.id, quantity);
+    
+    res.json({
       success: true,
-      message: 'Item removed from cart successfully'
+      message: 'Cart item quantity updated successfully',
+      data: result
     });
-
   } catch (error) {
-    console.error('Error removing from cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to remove item from cart', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    console.error('Error in updateCartItemQuantityController:', error);
+    res.status(500).json({
+      success: false,
+      error: (error as any).message || 'Failed to update cart item quantity'
     });
   }
 };
 
-// Clear entire cart
-export const clearCart = async (req: AuthRequest, res: Response) => {
+export const clearCartController = async (req: any, res: any) => {
   try {
-    // Check if user is authenticated
-    if (!req.user || !req.user.userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required. Please login first.' 
+    const userId = req.user.userId;
+    const result = await clearCart(userId);
+    
+    res.json({
+      success: true,
+      message: 'Cart cleared successfully',
+      data: result
+    });
+  } catch (error) {
+    console.error('Error in clearCartController:', error);
+    res.status(500).json({
+      success: false,
+      error: (error as any).message || 'Failed to clear cart'
+    });
+  }
+};
+
+export const addMultipleToCartController = async (req: any, res: any) => {
+  try {
+    const userId = req.user.userId;
+    const { items } = req.body;
+
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Items array is required'
       });
     }
 
-    const userId = req.user.userId;
+    const results = [];
+    for (const item of items) {
+      const { productId, quantity = 1 } = item;
+      const result = await addToCart(userId, productId, quantity);
+      results.push(result);
+    }
 
-    // Remove all cart items for the user
-    await prisma.cart.deleteMany({
-      where: { userId: userId }
-    });
-
-    res.status(200).json({
+    const finalResult = await calculateCartTotals(userId);
+    
+    res.json({
       success: true,
-      message: 'Cart cleared successfully'
+      message: 'Multiple items added to cart successfully',
+      data: finalResult
     });
-
   } catch (error) {
-    console.error('Error clearing cart:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to clear cart', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    console.error('Error in addMultipleToCartController:', error);
+    res.status(500).json({
+      success: false,
+      error: (error as any).message || 'Failed to add multiple items to cart'
     });
   }
 };
 
-// Utility function to calculate cart totals - can be imported by other controllers
-export const calculateCartTotals = async (userId: string) => {
+export const processCheckoutController = async (req: any, res: any) => {
   try {
-    // Get all cart items for the user
+    const userId = req.user.userId;
+    const { totalAmount, totalItems } = req.body;
+
+    // Get current cart items
     const cartItems = await prisma.cart.findMany({
       where: { userId: userId },
       include: {
@@ -523,57 +367,87 @@ export const calculateCartTotals = async (userId: string) => {
             name: true,
             brand: true,
             image_url: true,
-            rate: true,
-            quantity: true
+            rate: true
           }
         }
+      }
+    });
+
+    if (cartItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cart is empty'
+      });
+    }
+
+    // Create order
+    const order = await prisma.order.create({
+      data: {
+        userId: userId,
+        orderNumber: `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        status: 'PENDING',
+        totalAmount: totalAmount,
+        currency: 'INR',
+        orderItems: {
+          create: cartItems.map(item => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.product.rate
+          }))
+        }
       },
-      orderBy: {
-        createdAt: 'desc'
+      include: {
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                brand: true,
+                image_url: true,
+                rate: true
+              }
+            }
+          }
+        }
       }
     });
 
-    // Consolidate duplicate products by productId
-    const consolidatedItems = new Map();
-    
-    cartItems.forEach(item => {
-      const productId = item.productId;
-      
-      if (consolidatedItems.has(productId)) {
-        // Add quantities for same product
-        consolidatedItems.get(productId).quantity += item.quantity;
-        consolidatedItems.get(productId).itemTotal += (item.quantity * item.product.rate);
-      } else {
-        // First occurrence of this product
-        consolidatedItems.set(productId, {
-          id: item.id, // Keep the first cart item ID
-          productId: item.productId,
-          quantity: item.quantity,
-          itemTotal: item.quantity * item.product.rate,
-          product: item.product
-        });
-      }
-    });
+    // Clear the cart after successful order creation
+    await clearCart(userId);
 
-    // Convert Map to array
-    const itemsWithTotals = Array.from(consolidatedItems.values());
-
-    // Calculate totals
-    let totalAmount = 0;
-    let totalItems = 0;
-
-    itemsWithTotals.forEach(item => {
-      totalAmount += item.itemTotal;
-      totalItems += item.quantity;
-    });
-
-    return {
-      items: itemsWithTotals,
-      totalAmount: totalAmount,
-      totalItems: totalItems,
-      itemCount: cartItems.length
+    // Prepare order summary
+    const orderSummary = {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      totalAmount: order.totalAmount,
+      totalItems: order.orderItems.length,
+      itemCount: order.orderItems.reduce((sum, item) => sum + item.quantity, 0),
+      items: order.orderItems.map(item => ({
+        id: item.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        product: item.product
+      })),
+      status: order.status,
+      createdAt: order.createdAt
     };
+
+    res.json({
+      success: true,
+      message: 'Order created successfully',
+      data: {
+        orderSummary: orderSummary
+      }
+    });
   } catch (error) {
-    throw new Error(`Failed to calculate cart totals: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('Error in processCheckoutController:', error);
+    res.status(500).json({
+      success: false,
+      error: (error as any).message || 'Failed to process checkout'
+    });
   }
 };
+
+

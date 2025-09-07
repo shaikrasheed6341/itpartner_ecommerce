@@ -16,6 +16,9 @@ import { Payment } from '@/pages/Payment'
 import { AdminDashboard } from '@/pages/AdminDashboard'
 import { AdminLogin } from '@/pages/AdminLogin'
 import { AdminProducts } from '@/pages/AdminProducts'
+import PaymentSuccess from '@/pages/PaymentSuccess'
+import { Orders } from '@/pages/Orders'
+import { AdminOrders } from '@/pages/AdminOrders'
 import { AdminUsers } from '@/pages/AdminUsers'
 
 function AppContent() {
@@ -39,6 +42,9 @@ function AppContent() {
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/users" element={<AdminUsers />} />
         </Routes>
       </main>

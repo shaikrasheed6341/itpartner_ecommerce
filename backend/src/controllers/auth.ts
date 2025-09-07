@@ -1,78 +1,43 @@
-import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../generated/prisma';
 
 const prisma = new PrismaClient();
 
-interface RegisterRequest {
-  email: string;
-  password: string;
-  fullName: string;
-  phone: string;
-  houseNumber: string;
-  street: string;
-  area: string;
-  city: string;
-  state: string;
-  pinCode: string;
-}
-
-interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: any, res: any) => {
   try {
-    const {
-      email,
-      password,
-      fullName,
-      phone,
-      houseNumber,
-      street,
-      area,
-      city,
-      state,
-      pinCode
-    }: RegisterRequest = req.body;
-
-    // Validate required fields
-    if (!email || !password || !fullName || !phone || !houseNumber || !street || !area || !city || !state || !pinCode) {
-      return res.status(400).json({
-        message: 'All fields are required'
-      });
-    }
+    const userData = req.body;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: userData.email }
     });
 
     if (existingUser) {
-      return res.status(400).json({
-        message: 'User with this email already exists'
-      });
+      const response = {
+        success: false,
+        error: 'User with this email already exists'
+      };
+      return res.status(400).json(response);
     }
 
     // Hash password
     const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
 
     // Create user
     const user = await prisma.user.create({
       data: {
-        email,
+        email: userData.email,
         password: hashedPassword,
-        fullName,
-        phone,
-        houseNumber,
-        street,
-        area,
-        city,
-        state,
-        pinCode
+        fullName: userData.fullName,
+        phone: userData.phone,
+        houseNumber: userData.houseNumber,
+        street: userData.street,
+        area: userData.area,
+        city: userData.city,
+        state: userData.state,
+        pinCode: userData.pinCode
       },
       select: {
         id: true,
@@ -85,7 +50,8 @@ export const register = async (req: Request, res: Response) => {
         city: true,
         state: true,
         pinCode: true,
-
+        createdAt: true,
+        updatedAt: true
       }
     });
 
@@ -97,29 +63,44 @@ export const register = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
-    res.status(201).json({
+    const response = {
+      success: true,
       message: 'User registered successfully',
-      user,
-      token
-    });
+      data: {
+        user: { ...user, role: 'USER' },
+        token
+      }
+    };
+
+    res.status(201).json(response);
 
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    const response = {
+      success: false,
+      error: 'Internal server error'
+    };
+    res.status(500).json(response);
   }
 };
 
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: any, res: any) => {
   try {
-    const { email, password }: LoginRequest = req.body;
+    const { email, password } = req.body;
 
-    // Validate required fields
-    if (!email || !password) {
-      return res.status(400).json({
-        message: 'Email and password are required'
-      });
+    console.log('🔍 Attempting login for:', email);
+
+    // Test database connection first
+    try {
+      await prisma.$connect();
+      console.log('✅ Database connected successfully');
+    } catch (dbError) {
+      console.error('❌ Database connection failed:', dbError);
+      const response = {
+        success: false,
+        error: 'Database connection failed. Please try again later.'
+      };
+      return res.status(500).json(response);
     }
 
     // Find user
@@ -128,30 +109,34 @@ export const login = async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(401).json({
-        message: 'Invalid email or password'
-      });
+      const response = {
+        success: false,
+        error: 'Invalid email or password'
+      };
+      return res.status(401).json(response);
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({
-        message: 'Invalid email or password'
-      });
+      const response = {
+        success: false,
+        error: 'Invalid email or password'
+      };
+      return res.status(401).json(response);
     }
 
     // Generate JWT token
     const secret = process.env.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: (user as any).role || 'USER' },
+      { userId: user.id, email: user.email, role: 'USER' },
       secret,
       { expiresIn: '7d' }
     );
 
     // Return user data (excluding password)
-    const userData = {
+    const userData: any = {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
@@ -162,39 +147,60 @@ export const login = async (req: Request, res: Response) => {
       city: user.city,
       state: user.state,
       pinCode: user.pinCode,
-      role: (user as any).role || 'USER'
+      role: 'USER',
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     };
 
-    res.status(200).json({
+    const response = {
+      success: true,
       message: 'Login successful',
-      user: userData,
-      token
-    });
+      data: {
+        user: userData,
+        token
+      }
+    };
+
+    res.status(200).json(response);
 
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    
+    // Check if it's a database connection error
+    if (error instanceof Error && error.message.includes('Can\'t reach database server')) {
+      const response = {
+        success: false,
+        error: 'Database connection failed. Please check your database configuration.'
+      };
+      return res.status(500).json(response);
+    }
+    
+    const response = {
+      success: false,
+      error: 'Login failed. Please try again.'
+    };
+    res.status(500).json(response);
   }
 };
 
-export const getProfile = async (req: Request, res: Response) => {
+export const getProfile = async (req: any, res: any) => {
   try {
     const userId = (req as any).user.userId;
 
     const user = await prisma.user.findUnique({
       where: { id: userId }
-    }) as any;
+    });
 
     if (!user) {
-      return res.status(404).json({
-        message: 'User not found'
-      });
+      const response = {
+        success: false,
+        error: 'User not found'
+      };
+      return res.status(404).json(response);
     }
 
     // Return user data (excluding password)
-    const userData = {
+    const userData: any = {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
@@ -205,23 +211,30 @@ export const getProfile = async (req: Request, res: Response) => {
       city: user.city,
       state: user.state,
       pinCode: user.pinCode,
-      role: user.role || 'USER'
+      role: 'USER',
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     };
 
-    res.status(200).json({
-      user: userData
-    });
+    const response = {
+      success: true,
+      data: { user: userData }
+    };
+
+    res.status(200).json(response);
 
   } catch (error) {
     console.error('Get profile error:', error);
-    res.status(500).json({
-      message: 'Internal server error'
-    });
+    const response = {
+      success: false,
+      error: 'Internal server error'
+    };
+    res.status(500).json(response);
   }
 };
 
 // Get all users (Admin only)
-export const getAllUsers = async (req: Request, res: Response) => {
+export const getAllUsers = async (req: any, res: any) => {
   try {
     const { limit = 50, page = 1, search } = req.query;
     const limitNum = parseInt(limit as string);
@@ -244,30 +257,47 @@ export const getAllUsers = async (req: Request, res: Response) => {
       orderBy: {
         createdAt: 'desc',
       },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        houseNumber: true,
+        street: true,
+        area: true,
+        city: true,
+        state: true,
+        pinCode: true,
+        createdAt: true,
+        updatedAt: true
+      }
     });
 
     const totalCount = await prisma.user.count({
       where: whereClause,
     });
 
-    res.json({
+    const response = {
       success: true,
       data: {
-        users,
+        users: users.map(user => ({ ...user, role: 'USER' })),
         pagination: {
           currentPage: pageNum,
           totalPages: Math.ceil(totalCount / limitNum),
           totalCount,
           limit: limitNum,
         },
-      },
-    });
+      }
+    };
+
+    res.json(response);
 
   } catch (error) {
     console.error('Error fetching users:', error);
-    res.status(500).json({
+    const response = {
       success: false,
-      error: 'Failed to fetch users',
-    });
+      error: 'Failed to fetch users'
+    };
+    res.status(500).json(response);
   }
 };

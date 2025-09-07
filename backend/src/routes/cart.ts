@@ -1,39 +1,39 @@
-import express from 'express';
-import { 
-  addToCart, 
-  addMultipleToCart,
-  getUserCart,
-  updateCartItem,
-  removeFromCart,
-  clearCart,
-  processCheckout
-} from '../controllers/addtocartcontroller';
+import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth';
+import { 
+  addToCartController, 
+  getCartController, 
+  removeFromCartController, 
+  updateCartItemQuantityController, 
+  clearCartController,
+  addMultipleToCartController,
+  processCheckoutController
+} from '../controllers/addtocartcontroller';
 
-const router = express.Router();
+const router = Router();
 
 // All cart routes require authentication
 router.use(authenticateToken);
 
-// Add item to cart
-router.post('/add', addToCart);
+// GET /api/cart - Get user's cart
+router.get('/', getCartController);
 
-// Add multiple items to cart
-router.post('/add-multiple', addMultipleToCart);
+// POST /api/cart - Add single item to cart
+router.post('/', addToCartController);
 
-// Process checkout
-router.post('/process-checkout', processCheckout);
+// POST /api/cart/add-multiple - Add multiple items to cart
+router.post('/add-multiple', addMultipleToCartController);
 
-// Get user's cart with totals
-router.get('/', getUserCart);
+// POST /api/cart/process-checkout - Process checkout and create order
+router.post('/process-checkout', processCheckoutController);
 
-// Update cart item quantity
-router.put('/update/:productId', updateCartItem);
+// PUT /api/cart/:productId - Update cart item quantity
+router.put('/:productId', updateCartItemQuantityController);
 
-// Remove item from cart
-router.delete('/remove/:productId', removeFromCart);
+// DELETE /api/cart/:productId - Remove item from cart
+router.delete('/:productId', removeFromCartController);
 
-// Clear entire cart
-router.delete('/clear', clearCart);
+// DELETE /api/cart/clear - Clear entire cart
+router.delete('/clear', clearCartController);
 
 export default router;

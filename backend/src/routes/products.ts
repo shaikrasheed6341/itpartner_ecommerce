@@ -4,11 +4,15 @@ import {
   getAllProducts, 
   getProductById,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  testProducts
 } from '../controllers/productController';
-import { requireAdmin } from '../middleware/auth';
+import { adminAuth } from '../middleware/adminAuth';
 
 const router = Router();
+
+// Test route
+router.get('/test', testProducts);
 
 // Public routes
 // GET /api/products - Get all products
@@ -19,12 +23,12 @@ router.get('/:id', getProductById);
 
 // Admin only routes
 // POST /api/products - Create a new product
-router.post('/', requireAdmin, createProduct);
+router.post('/', adminAuth, createProduct);
 
 // PUT /api/products/:id - Update product
-router.put('/:id', requireAdmin, updateProduct);
+router.put('/:id', adminAuth, updateProduct);
 
 // DELETE /api/products/:id - Delete product
-router.delete('/:id', requireAdmin, deleteProduct);
+router.delete('/:id', adminAuth, deleteProduct);
 
 export default router;

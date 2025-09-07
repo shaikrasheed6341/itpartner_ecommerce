@@ -72,6 +72,13 @@ export function Cart() {
     }
   }, [])
 
+  // Fetch cart on component mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserCart()
+    }
+  }, [isAuthenticated, fetchUserCart])
+
   // Only fetch cart when explicitly needed, not automatically
 
   // Handle product selection with quantity
@@ -136,7 +143,7 @@ export function Cart() {
       removeFromCart(productId)
       
       // Remove from backend cart
-      const response = await fetch(`http://localhost:3000/api/cart/${productId}`, {
+      const response = await fetch(`http://localhost:5000/api/cart/${productId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -165,7 +172,7 @@ export function Cart() {
       clearCart()
       
       // Clear backend cart
-      const response = await fetch('http://localhost:3000/api/cart/clear', {
+      const response = await fetch('http://localhost:5000/api/cart/clear', {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -231,27 +238,19 @@ export function Cart() {
       return
     }
 
+    if (!checkoutResult?.orderSummary?.orderId) {
+      console.error('No order found in checkout result')
+      return
+    }
+
     setIsProcessingCheckout(true)
     
     try {
-      // Step 1: Create order with cart total amount
-      const orderResponse = await fetch('http://localhost:3000/api/orders/create', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      })
+      // Use the order ID from the checkout result (order was already created by processCheckout)
+      const createdOrderId = checkoutResult.orderSummary.orderId
 
-      if (!orderResponse.ok) {
-        throw new Error('Failed to create order')
-      }
-
-      const orderData = await orderResponse.json()
-      const createdOrderId = orderData.data.order.id
-
-      // Step 2: Create Razorpay order
-      const razorpayResponse = await fetch('http://localhost:3000/api/orders/razorpay/create', {
+      // Create Razorpay order (order already created by processCheckout)
+      const razorpayResponse = await fetch('http://localhost:5000/api/orders/razorpay/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -268,7 +267,7 @@ export function Cart() {
 
       const razorpayData = await razorpayResponse.json()
       
-      // Step 3: Initialize Razorpay payment directly
+      // Initialize Razorpay payment directly
       const options = {
         key: razorpayData.data.key_id,
         amount: razorpayData.data.amount,
@@ -278,8 +277,8 @@ export function Cart() {
         order_id: razorpayData.data.razorpayOrderId,
         handler: async function (response: any) {
           try {
-            // Step 4: Verify payment
-            const verifyResponse = await fetch('http://localhost:3000/api/orders/razorpay/verify', {
+            // Verify payment
+            const verifyResponse = await fetch('http://localhost:5000/api/orders/razorpay/verify', {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -293,9 +292,14 @@ export function Cart() {
             })
 
             if (verifyResponse.ok) {
-              // Payment successful - show success message and reload page
-              alert('Payment successful! Your order has been placed.')
-              window.location.reload() // Reload the page to refresh cart state
+              const verifyData = await verifyResponse.json()
+              // Payment successful - redirect to success page with order data
+              navigate('/payment-success', { 
+                state: { 
+                  orderData: verifyData.data,
+                  paymentData: verifyData.data.payment
+                } 
+              })
             } else {
               alert('Payment verification failed. Please contact support.')
             }

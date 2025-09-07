@@ -1,10 +1,9 @@
-import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
-export const getVisitorStats = async (req: Request, res: Response) => {
+export const getVisitorStats = async (req: any, res: any) => {
   try {
     const { days = 7 } = req.query;
-    const daysToFetch = parseInt(days as string);
+    const daysToFetch = parseInt(days);
 
     // Get daily stats for the specified number of days
     const startDate = new Date();
@@ -75,11 +74,11 @@ export const getVisitorStats = async (req: Request, res: Response) => {
   }
 };
 
-export const getPageViews = async (req: Request, res: Response) => {
+export const getPageViews = async (req: any, res: any) => {
   try {
     const { page } = req.params;
     const { days = 30 } = req.query;
-    const daysToFetch = parseInt(days as string);
+    const daysToFetch = parseInt(days);
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysToFetch);
@@ -114,7 +113,7 @@ export const getPageViews = async (req: Request, res: Response) => {
   }
 };
 
-export const getRecentVisitors = async (req: Request, res: Response) => {
+export const getRecentVisitors = async (req: any, res: any) => {
   try {
     const { limit = 10 } = req.query;
     const limitNum = parseInt(limit as string);

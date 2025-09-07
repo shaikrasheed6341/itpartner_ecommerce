@@ -1,15 +1,14 @@
-import { Request, Response } from "express";
 import Razorpay from "razorpay";
 import { PrismaClient } from "../../generated/prisma";
 import { calculateCartTotals } from "../addtocartcontroller";
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const prisma = new PrismaClient();
 
-interface AuthRequest extends Request {
-    user?: any;
-}
-
-export const checktoken = async (req: AuthRequest, res: Response) => {
+export const checktoken = async (req: any, res: any) => {
     const authHeader = req.headers.authorization;
     if(!authHeader){
         return res.status(401).json({
@@ -38,13 +37,29 @@ export const checktoken = async (req: AuthRequest, res: Response) => {
     })
 }
 
+// Debug: Check if environment variables are loaded
+console.log('=== RAZORPAY CONFIGURATION DEBUG ===');
+console.log('RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID);
+console.log('RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? '***SET***' : 'NOT SET');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('All env vars starting with RAZORPAY:', Object.keys(process.env).filter(key => key.startsWith('RAZORPAY')));
+
+// Check if keys are valid
+if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    console.error('❌ RAZORPAY CREDENTIALS MISSING!');
+    console.error('KEY_ID:', process.env.RAZORPAY_KEY_ID);
+    console.error('KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? 'SET' : 'NOT SET');
+} else {
+    console.log('✅ RAZORPAY CREDENTIALS FOUND');
+}
+
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// Create order with cart total amount
-export const createOrder = async (req: AuthRequest, res: Response) => {
+// Create order with cart total amount and order items
+export const createOrder = async (req: any, res: any) => {
     try {
         // Check if user is authenticated
         if (!req.user || !req.user.userId) {
@@ -70,15 +85,45 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
         // Generate unique order number
         const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-        // Create order in database using the calculated total amount
-        const order = await prisma.order.create({
-            data: {
-                userId: userId,
-                orderNumber: orderNumber,
-                totalAmount: cartData.totalAmount,
-                currency: "INR",
-                status: "PENDING"
-            },
+        // Create order and order items in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            // Create order in database using the calculated total amount
+            const order = await tx.order.create({
+                data: {
+                    userId: userId,
+                    orderNumber: orderNumber,
+                    totalAmount: cartData.totalAmount,
+                    currency: "INR",
+                    status: "PENDING"
+                },
+            });
+
+            // Create order items for each cart item
+            const orderItems = [];
+            for (const cartItem of cartData.items) {
+                const orderItem = await tx.orderItem.create({
+                    data: {
+                        orderId: order.id,
+                        productId: cartItem.productId,
+                        quantity: cartItem.quantity,
+                        price: cartItem.product.rate // Store price at time of order
+                    },
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                                brand: true,
+                                image_url: true,
+                                rate: true
+                            }
+                        }
+                    }
+                });
+                orderItems.push(orderItem);
+            }
+
+            return { order, orderItems };
         });
 
         res.status(201).json({
@@ -86,13 +131,21 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
             message: "Order created successfully",
             data: {
                 order: {
-                    id: order.id,
-                    orderNumber: order.orderNumber,
-                    totalAmount: order.totalAmount,
-                    currency: order.currency,
-                    status: order.status,
-                    createdAt: order.createdAt
+                    id: result.order.id,
+                    orderNumber: result.order.orderNumber,
+                    totalAmount: result.order.totalAmount,
+                    currency: result.order.currency,
+                    status: result.order.status,
+                    createdAt: result.order.createdAt
                 },
+                orderItems: result.orderItems.map(item => ({
+                    id: item.id,
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    price: item.price,
+                    itemTotal: item.quantity * item.price,
+                    product: item.product
+                })),
                 orderSummary: {
                     items: cartData.items,
                     totalAmount: cartData.totalAmount,
@@ -113,10 +166,15 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
 };
 
 // Create Razorpay order for payment
-export const createRazorpayOrder = async (req: AuthRequest, res: Response) => {
+export const createRazorpayOrder = async (req: any, res: any) => {
     try {
+        console.log('=== createRazorpayOrder called ===');
+        console.log('RAZORPAY_KEY_ID at runtime:', process.env.RAZORPAY_KEY_ID);
+        console.log('RAZORPAY_KEY_SECRET at runtime:', process.env.RAZORPAY_KEY_SECRET ? '***SET***' : 'NOT SET');
+        
         // Check if user is authenticated
         if (!req.user || !req.user.userId) {
+            console.log('❌ Authentication failed - no user or userId');
             return res.status(401).json({ 
                 success: false, 
                 message: 'Authentication required. Please login first.' 
@@ -150,6 +208,12 @@ export const createRazorpayOrder = async (req: AuthRequest, res: Response) => {
         }
 
         // Create Razorpay order
+        console.log('About to create Razorpay order with:');
+        console.log('- Amount:', Math.round(order.totalAmount * 100));
+        console.log('- Currency:', order.currency);
+        console.log('- Receipt:', order.orderNumber);
+        console.log('- Using Razorpay KEY_ID:', process.env.RAZORPAY_KEY_ID);
+        
         const razorpayOrder = await razorpay.orders.create({
             amount: Math.round(order.totalAmount * 100), // Convert to paise
             currency: order.currency,
@@ -191,7 +255,7 @@ export const createRazorpayOrder = async (req: AuthRequest, res: Response) => {
 };
 
 // Verify payment
-export const verifyPayment = async (req: AuthRequest, res: Response) => {
+export const verifyPayment = async (req: any, res: any) => {
     try {
         // Check if user is authenticated
         if (!req.user || !req.user.userId) {
@@ -292,6 +356,219 @@ export const verifyPayment = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ 
             success: false, 
             message: 'Failed to verify payment', 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+    }
+};
+
+// Get order details with order items (for admin and user)
+export const getOrderDetails = async (req: any, res: any) => {
+    try {
+        // Check if user is authenticated
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Authentication required. Please login first.' 
+            });
+        }
+
+        const userId = req.user.userId;
+        const { orderId } = req.params;
+
+        // Validate input
+        if (!orderId) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Order ID is required' 
+            });
+        }
+
+        // Get order with order items and product details
+        const order = await prisma.order.findFirst({
+            where: {
+                id: orderId,
+                userId: userId
+            },
+            include: {
+                orderItems: {
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                                brand: true,
+                                image_url: true,
+                                rate: true
+                            }
+                        }
+                    }
+                },
+                user: {
+                    select: {
+                        id: true,
+                        fullName: true,
+                        email: true,
+                        phone: true,
+                        houseNumber: true,
+                        street: true,
+                        area: true,
+                        city: true,
+                        state: true,
+                        pinCode: true
+                    }
+                },
+                payments: {
+                    select: {
+                        id: true,
+                        amount: true,
+                        status: true,
+                        paymentMethod: true,
+                        providerPaymentId: true,
+                        createdAt: true
+                    }
+                }
+            }
+        });
+
+        if (!order) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Order not found' 
+            });
+        }
+
+        // Format order items with totals
+        const formattedOrderItems = order.orderItems.map(item => ({
+            id: item.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+            itemTotal: item.quantity * item.price,
+            product: item.product
+        }));
+
+        res.status(200).json({
+            success: true,
+            message: "Order details retrieved successfully",
+            data: {
+                order: {
+                    id: order.id,
+                    orderNumber: order.orderNumber,
+                    status: order.status,
+                    totalAmount: order.totalAmount,
+                    currency: order.currency,
+                    paymentMethod: order.paymentMethod,
+                    razorpayOrderId: order.razorpayOrderId,
+                    createdAt: order.createdAt,
+                    updatedAt: order.updatedAt
+                },
+                orderItems: formattedOrderItems,
+                customer: order.user,
+                payments: order.payments,
+                summary: {
+                    totalItems: order.orderItems.reduce((sum, item) => sum + item.quantity, 0),
+                    itemCount: order.orderItems.length,
+                    totalAmount: order.totalAmount
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Error getting order details:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to get order details', 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+    }
+};
+
+// Get all orders for a user
+export const getUserOrders = async (req: any, res: any) => {
+    try {
+        // Check if user is authenticated
+        if (!req.user || !req.user.userId) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Authentication required. Please login first.' 
+            });
+        }
+
+        const userId = req.user.userId;
+
+        // Get all orders for the user with order items
+        const orders = await prisma.order.findMany({
+            where: {
+                userId: userId
+            },
+            include: {
+                orderItems: {
+                    include: {
+                        product: {
+                            select: {
+                                id: true,
+                                name: true,
+                                brand: true,
+                                image_url: true,
+                                rate: true
+                            }
+                        }
+                    }
+                },
+                payments: {
+                    select: {
+                        id: true,
+                        amount: true,
+                        status: true,
+                        paymentMethod: true,
+                        createdAt: true
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        // Format orders with order items
+        const formattedOrders = orders.map(order => ({
+            id: order.id,
+            orderNumber: order.orderNumber,
+            status: order.status,
+            totalAmount: order.totalAmount,
+            currency: order.currency,
+            paymentMethod: order.paymentMethod,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt,
+            orderItems: order.orderItems.map(item => ({
+                id: item.id,
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price,
+                itemTotal: item.quantity * item.price,
+                product: item.product
+            })),
+            payments: order.payments,
+            summary: {
+                totalItems: order.orderItems.reduce((sum, item) => sum + item.quantity, 0),
+                itemCount: order.orderItems.length
+            }
+        }));
+
+        res.status(200).json({
+            success: true,
+            message: "User orders retrieved successfully",
+            data: {
+                orders: formattedOrders,
+                totalOrders: orders.length
+            }
+        });
+
+    } catch (error) {
+        console.error('Error getting user orders:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to get user orders', 
             error: error instanceof Error ? error.message : 'Unknown error' 
         });
     }

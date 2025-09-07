@@ -4,9 +4,14 @@ import {
   adminLogin, 
   adminProfile, 
   generateNewOTP,
-  checkLoginRequirements
+  checkLoginRequirements,
+  getAllOrders,
+  updateOrderStatus
 } from '../controllers/adminController';
-import { authenticateAdmin } from '../middleware/adminAuth';
+import { getAdminProducts } from '../controllers/productController';
+import { adminAuth } from '../middleware/adminAuth';
+
+
 
 const router = Router();
 
@@ -16,7 +21,8 @@ router.post('/login', adminLogin);
 router.post('/check-login-requirements', checkLoginRequirements);
 router.post('/generate-otp', generateNewOTP);
 
-// Protected admin routes
-router.get('/profile', authenticateAdmin, adminProfile);
+// Public data routes (no auth required)
+router.get('/orders', getAllOrders);
+router.get('/products', getAdminProducts);
 
 export default router;

@@ -1,105 +1,179 @@
-import { createContext, useContext, useState, ReactNode, useCallback } from "react"
+import { createContext, useContext, useState, useCallback } from "react"
 
-interface CartItem {
-  id: string
-  productId?: string
-  name: string
-  brand: string
-  image_url?: string
-  rate: number
-  quantity: number
-}
+const CartContext = createContext({
+  cart: {
+    items: [] as any[],
+    totalItems: 0,
+    totalAmount: 0
+  },
+  addToCart: async (_item: any) => {},
+  addMultipleToCart: async (_items: any) => ({ success: false, message: '', data: null }),
+  processCheckout: async () => ({ success: false, message: '', data: { orderSummary: null } }),
+  fetchUserCart: async () => {},
+  removeFromCart: (_id: any) => {},
+  updateQuantity: (_id: any, _quantity: any) => {},
+  clearCart: () => {},
+  loading: false
+})
 
-interface CartState {
-  items: CartItem[]
-  totalItems: number
-  totalAmount: number
-}
-
-interface CartContextType {
-  cart: CartState
-  addToCart: (item: Omit<CartItem, "quantity">) => void
-  addMultipleToCart: (items: Array<{ productId: string; quantity: number }>) => Promise<{
-    success: boolean;
-    message: string;
-    data?: {
-      currentRequestSummary: {
-        items: any[];
-        totalAmount: number;
-        totalItems: number;
-        itemCount: number;
-      };
-    };
-  }>
-  processCheckout: () => Promise<{
-    success: boolean;
-    message: string;
-    data?: {
-      orderSummary: {
-        items: any[];
-        totalAmount: number;
-        totalItems: number;
-        itemCount: number;
-      };
-    };
-  }>
-  fetchUserCart: () => Promise<void>
-  removeFromCart: (id: string) => void
-  updateQuantity: (id: string, quantity: number) => void
-  clearCart: () => void
-}
-
-const CartContext = createContext<CartContextType | undefined>(undefined)
-
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartState>({
-    items: [],
+export function CartProvider({ children }: any) {
+  const [cart, setCart] = useState({
+    items: [] as any[],
     totalItems: 0,
     totalAmount: 0
   })
+  const [loading] = useState(false)
 
-  const addToCart = (item: Omit<CartItem, "quantity">) => {
-    setCart(prevCart => {
-      // Generate a unique ID for the cart item
-      const uniqueId = `${item.id}-${Date.now()}-${Math.random()}`
-      
-      // If item exists with same productId, increase quantity
-      const existingItem = prevCart.items.find(cartItem => cartItem.productId === item.id)
-      
-      if (existingItem) {
-        // If item exists, increase quantity
-        const updatedItems = prevCart.items.map(cartItem =>
-          cartItem.productId === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        )
-        
-        return {
-          ...prevCart,
-          items: updatedItems,
-          totalItems: prevCart.totalItems + 1,
-          totalAmount: prevCart.totalAmount + item.rate
-        }
-      } else {
-        // If item does not exist, add new item with quantity 1
-        const newItem = { 
-          ...item, 
-          id: uniqueId,
-          productId: item.id,
-          quantity: 1 
-        }
-        
-        return {
-          ...prevCart,
-          items: [...prevCart.items, newItem],
-          totalItems: prevCart.totalItems + 1,
-          totalAmount: prevCart.totalAmount + item.rate
-        }
+  const addToCart = async (item: any) => {
+    try {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        // If not authenticated, just update local state
+        setCart(prevCart => {
+          // Generate a unique ID for the cart item
+          const uniqueId = `${item.id}-${Date.now()}-${Math.random()}`
+          
+          // If item exists with same productId, increase quantity
+          const existingItem = prevCart.items.find(cartItem => cartItem.productId === item.id)
+          
+          if (existingItem) {
+            // If item exists, increase quantity
+            const updatedItems = prevCart.items.map(cartItem =>
+              cartItem.productId === item.id
+                ? { ...cartItem, quantity: cartItem.quantity + 1 }
+                : cartItem
+            )
+            
+            return {
+              ...prevCart,
+              items: updatedItems,
+              totalItems: prevCart.totalItems + 1,
+              totalAmount: prevCart.totalAmount + item.rate
+            }
+          } else {
+            // If item does not exist, add new item with quantity 1
+            const newItem = { 
+              ...item, 
+              id: uniqueId,
+              productId: item.id,
+              quantity: 1 
+            }
+            
+            return {
+              ...prevCart,
+              items: [...prevCart.items, newItem],
+              totalItems: prevCart.totalItems + 1,
+              totalAmount: prevCart.totalAmount + item.rate
+            }
+          }
+        })
+        return
       }
-    })
+
+      // If authenticated, call server API
+      const response = await fetch('http://localhost:5000/api/cart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          productId: item.id,
+          quantity: 1
+        })
+      })
+
+      const result = await response.json()
+      console.log('Add to cart response:', result)
+
+      if (result.success) {
+        // Update local state with server response
+        setCart(prevCart => {
+          // Generate a unique ID for the cart item
+          const uniqueId = `${item.id}-${Date.now()}-${Math.random()}`
+          
+          // If item exists with same productId, increase quantity
+          const existingItem = prevCart.items.find(cartItem => cartItem.productId === item.id)
+          
+          if (existingItem) {
+            // If item exists, increase quantity
+            const updatedItems = prevCart.items.map(cartItem =>
+              cartItem.productId === item.id
+                ? { ...cartItem, quantity: cartItem.quantity + 1 }
+                : cartItem
+            )
+            
+            return {
+              ...prevCart,
+              items: updatedItems,
+              totalItems: prevCart.totalItems + 1,
+              totalAmount: prevCart.totalAmount + item.rate
+            }
+          } else {
+            // If item does not exist, add new item with quantity 1
+            const newItem = { 
+              ...item, 
+              id: uniqueId,
+              productId: item.id,
+              quantity: 1 
+            }
+            
+            return {
+              ...prevCart,
+              items: [...prevCart.items, newItem],
+              totalItems: prevCart.totalItems + 1,
+              totalAmount: prevCart.totalAmount + item.rate
+            }
+          }
+        })
+      } else {
+        console.error('Failed to add item to cart:', result.error)
+      }
+    } catch (error) {
+      console.error('Error adding item to cart:', error)
+      // Fallback to local state update
+      setCart(prevCart => {
+        // Generate a unique ID for the cart item
+        const uniqueId = `${item.id}-${Date.now()}-${Math.random()}`
+        
+        // If item exists with same productId, increase quantity
+        const existingItem = prevCart.items.find(cartItem => cartItem.productId === item.id)
+        
+        if (existingItem) {
+          // If item exists, increase quantity
+          const updatedItems = prevCart.items.map(cartItem =>
+            cartItem.productId === item.id
+              ? { ...cartItem, quantity: cartItem.quantity + 1 }
+              : cartItem
+          )
+          
+          return {
+            ...prevCart,
+            items: updatedItems,
+            totalItems: prevCart.totalItems + 1,
+            totalAmount: prevCart.totalAmount + item.rate
+          }
+        } else {
+          // If item does not exist, add new item with quantity 1
+          const newItem = { 
+            ...item, 
+            id: uniqueId,
+            productId: item.id,
+            quantity: 1 
+          }
+          
+          return {
+            ...prevCart,
+            items: [...prevCart.items, newItem],
+            totalItems: prevCart.totalItems + 1,
+            totalAmount: prevCart.totalAmount + item.rate
+          }
+        }
+      })
+    }
   }
 
-  const removeFromCart = (id: string) => {
+  const removeFromCart = (id: any) => {
     setCart(prevCart => {
       const itemToRemove = prevCart.items.find(item => item.id === id)
       if (!itemToRemove) return prevCart
@@ -113,7 +187,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = (id: any, quantity: any) => {
     setCart(prevCart => {
       const item = prevCart.items.find(item => item.id === id)
       
@@ -151,7 +225,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     })
   }
 
-  const addMultipleToCart = async (items: Array<{ productId: string; quantity: number }>) => {
+  const addMultipleToCart = async (items: any) => {
     try {
       const token = localStorage.getItem('authToken')
       if (!token) {
@@ -259,7 +333,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       fetchUserCart,
       removeFromCart,
       updateQuantity,
-      clearCart
+      clearCart,
+      loading
     }}>
       {children}
     </CartContext.Provider>

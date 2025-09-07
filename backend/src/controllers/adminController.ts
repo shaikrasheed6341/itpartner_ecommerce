@@ -1,4 +1,3 @@
-import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -6,27 +5,15 @@ import { PrismaClient } from '../generated/prisma';
 
 const prisma = new PrismaClient();
 
-interface AdminRegisterRequest {
-  email: string;
-  password: string;
-  fullName: string;
-}
-
-interface AdminLoginRequest {
-  email: string;
-  password: string;
-  otp: string;
-}
-
 // Generate 6-digit OTP
 const generateOTP = (): string => {
   return crypto.randomInt(100000, 999999).toString();
 };
 
-export const adminRegister = async (req: Request, res: Response) => {
+export const adminRegister = async (req: any, res: any) => {
   try {
     console.log('Admin registration request:', req.body);
-    const { email, password, fullName }: AdminRegisterRequest = req.body;
+    const { email, password, fullName } = req.body;
 
     // Validate required fields
     if (!email || !password || !fullName) {
@@ -88,9 +75,9 @@ export const adminRegister = async (req: Request, res: Response) => {
   }
 };
 
-export const adminLogin = async (req: Request, res: Response) => {
+export const adminLogin = async (req: any, res: any) => {
   try {
-    const { email, password, otp }: AdminLoginRequest = req.body;
+    const { email, password, otp } = req.body;
 
     // Validate required fields
     if (!email || !password) {
@@ -106,7 +93,8 @@ export const adminLogin = async (req: Request, res: Response) => {
 
     if (!admin) {
       return res.status(401).json({
-        message: 'Invalid email or password'
+        success: false,
+        error: 'Invalid email or password'
       });
     }
 
@@ -115,7 +103,8 @@ export const adminLogin = async (req: Request, res: Response) => {
 
     if (!isPasswordValid) {
       return res.status(401).json({
-        message: 'Invalid email or password'
+        success: false,
+        error: 'Invalid email or password'
       });
     }
 
@@ -123,7 +112,8 @@ export const adminLogin = async (req: Request, res: Response) => {
     if (admin.isFirstLogin) {
       if (!otp) {
         return res.status(400).json({
-          message: 'OTP is required for first login',
+          success: false,
+          error: 'OTP is required for first login',
           requiresOTP: true
         });
       }
@@ -131,7 +121,8 @@ export const adminLogin = async (req: Request, res: Response) => {
       // Verify OTP for first login
       if (admin.otp !== otp) {
         return res.status(401).json({
-          message: 'Invalid OTP'
+          success: false,
+          error: 'Invalid OTP'
         });
       }
 
@@ -168,20 +159,24 @@ export const adminLogin = async (req: Request, res: Response) => {
     };
 
     res.status(200).json({
+      success: true,
       message: 'Admin login successful',
-      admin: adminData,
-      token
+      data: {
+        admin: adminData,
+        token
+      }
     });
 
   } catch (error) {
     console.error('Admin login error:', error);
     res.status(500).json({
-      message: 'Internal server error'
+      success: false,
+      error: 'Internal server error'
     });
   }
 };
 
-export const adminProfile = async (req: Request, res: Response) => {
+export const adminProfile = async (req: any, res: any) => {
   try {
     const adminId = (req as any).user.adminId;
 
@@ -214,7 +209,7 @@ export const adminProfile = async (req: Request, res: Response) => {
   }
 };
 
-export const checkLoginRequirements = async (req: Request, res: Response) => {
+export const checkLoginRequirements = async (req: any, res: any) => {
   try {
     const { email } = req.body;
 
@@ -237,26 +232,31 @@ export const checkLoginRequirements = async (req: Request, res: Response) => {
 
     if (!admin) {
       return res.status(404).json({
-        message: 'Admin not found'
+        success: false,
+        error: 'Admin not found'
       });
     }
 
     res.status(200).json({
-      email: admin.email,
-      isFirstLogin: admin.isFirstLogin,
-      requiresOTP: admin.isFirstLogin,
-      otp: admin.isFirstLogin ? admin.otp : null // Only return OTP if first login
+      success: true,
+      data: {
+        email: admin.email,
+        isFirstLogin: admin.isFirstLogin,
+        requiresOTP: admin.isFirstLogin,
+        otp: admin.isFirstLogin ? admin.otp : null
+      }
     });
 
   } catch (error) {
     console.error('Check login requirements error:', error);
     res.status(500).json({
-      message: 'Internal server error'
+      success: false,
+      error: 'Internal server error'
     });
   }
 };
 
-export const generateNewOTP = async (req: Request, res: Response) => {
+export const generateNewOTP = async (req: any, res: any) => {
   try {
     const { email } = req.body;
 
@@ -295,6 +295,190 @@ export const generateNewOTP = async (req: Request, res: Response) => {
     console.error('Generate OTP error:', error);
     res.status(500).json({
       message: 'Internal server error'
+    });
+  }
+};
+
+// Get all orders for admin
+export const getAllOrders = async (req: any, res: any) => {
+  try {
+    // Get all orders with order items and user details
+    const orders = await prisma.order.findMany({
+      include: {
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                brand: true,
+                image_url: true,
+                rate: true
+              }
+            }
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            houseNumber: true,
+            street: true,
+            area: true,
+            city: true,
+            state: true,
+            pinCode: true
+          }
+        },
+        payments: {
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+            paymentMethod: true,
+            providerPaymentId: true,
+            createdAt: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Format orders with order items
+    const formattedOrders = orders.map(order => ({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      totalAmount: order.totalAmount,
+      currency: order.currency,
+      paymentMethod: order.paymentMethod,
+      razorpayOrderId: order.razorpayOrderId,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      orderItems: order.orderItems.map(item => ({
+        id: item.id,
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        itemTotal: item.quantity * item.price,
+        product: item.product
+      })),
+      user: order.user,
+      payments: order.payments,
+      summary: {
+        totalItems: order.orderItems.reduce((sum, item) => sum + item.quantity, 0),
+        itemCount: order.orderItems.length,
+        totalAmount: order.totalAmount
+      }
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: "All orders retrieved successfully",
+      data: {
+        orders: formattedOrders,
+        totalOrders: orders.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting all orders:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to get orders', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+};
+
+// Update order status
+export const updateOrderStatus = async (req: any, res: any) => {
+  try {
+    // Check if user is admin
+    if (!req.user || req.user.role !== 'ADMIN') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Admin access required' 
+      });
+    }
+
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    // Validate input
+    if (!orderId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Order ID is required' 
+      });
+    }
+
+    if (!status || !['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Valid status is required' 
+      });
+    }
+
+    // Update order status
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { status: status as any },
+      include: {
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                brand: true,
+                image_url: true,
+                rate: true
+              }
+            }
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phone: true,
+            houseNumber: true,
+            street: true,
+            area: true,
+            city: true,
+            state: true,
+            pinCode: true
+          }
+        }
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Order status updated successfully",
+      data: {
+        order: {
+          id: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          status: updatedOrder.status,
+          totalAmount: updatedOrder.totalAmount,
+          updatedAt: updatedOrder.updatedAt
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update order status', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
     });
   }
 };

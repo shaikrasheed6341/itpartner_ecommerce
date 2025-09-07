@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, Loader2 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface AddProductFormProps {
   onSuccess?: () => void
@@ -7,6 +8,7 @@ interface AddProductFormProps {
 }
 
 export function AddProductForm({ onSuccess, onError }: AddProductFormProps) {
+  const { token } = useAuth()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -20,11 +22,21 @@ export function AddProductForm({ onSuccess, onError }: AddProductFormProps) {
     e.preventDefault()
     setLoading(true)
 
+    // Check if admin token exists
+    if (!token) {
+      const errorMessage = 'Admin authentication required. Please login again.'
+      onError?.(errorMessage)
+      alert(errorMessage)
+      setLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('http://localhost:5000/api/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           name: formData.name,
@@ -50,9 +62,15 @@ export function AddProductForm({ onSuccess, onError }: AddProductFormProps) {
         onSuccess?.()
         alert('Product added successfully!')
       } else {
-        const errorMessage = data.error || 'Failed to add product'
-        onError?.(errorMessage)
-        alert('Error: ' + errorMessage)
+        if (response.status === 401 || response.status === 403) {
+          const errorMessage = 'Authentication failed. Please login again.'
+          onError?.(errorMessage)
+          alert(errorMessage)
+        } else {
+          const errorMessage = data.error || 'Failed to add product'
+          onError?.(errorMessage)
+          alert('Error: ' + errorMessage)
+        }
       }
     } catch (error) {
       console.error('Error adding product:', error)
