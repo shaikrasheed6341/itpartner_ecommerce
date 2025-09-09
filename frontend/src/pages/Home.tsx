@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Wifi, Monitor, Shield, Camera, Laptop, Server, Phone } from 'lucide-react'
+import { Reviews } from '../googlereview/Review'
 
 export function Home() {
   return (
@@ -143,7 +144,12 @@ export function Home() {
           </div>
         </div>
       </section>
-
+  <section className="w-full py-12 md:py-24 lg:py-32">
+    <div className="container px-4 md:px-6">
+      <Reviews />
+    </div>
+  </section>
+      
       {/* Call to Action */}
       <section className="w-full py-12 md:py-24 lg:py-32 bg-zinc-800 dark:bg-zinc-200 text-white dark:text-zinc-900">
         <div className="container px-4 md:px-6 text-center">
