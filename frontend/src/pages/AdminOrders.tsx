@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { Package, Clock, CheckCircle, Truck, XCircle, Eye, Calendar, CreditCard, User, MapPin, Phone, Mail, Search, Filter, ChevronDown, ChevronUp, MoreVertical, Edit3 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Package, Clock, CheckCircle, Truck, XCircle, Eye, Calendar, CreditCard, User, MapPin, Phone, Mail, Search, Filter, ChevronDown, ChevronUp, MoreVertical, Edit3, ArrowLeft, Ship } from 'lucide-react'
 
 interface OrderItem {
   id: string
@@ -57,12 +58,13 @@ interface Order {
 
 export function AdminOrders() {
   const { token } = useAuth()
+  const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('CONFIRMED')
+  const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<string>('newest')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
 
@@ -162,6 +164,14 @@ export function AdminOrders() {
     }
   }
 
+  const handleShipOrder = (orderId: string) => {
+    navigate(`/admin/shipping/${orderId}`)
+  }
+
+  const handleBackToDashboard = () => {
+    navigate('/admin')
+  }
+
   // Filter and sort orders
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
@@ -221,9 +231,19 @@ export function AdminOrders() {
       <div className="bg-white border-b border-gray-200">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Confirmed Orders</h1>
-              <p className="text-sm text-gray-600 mt-1">Manage and track confirmed customer orders</p>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleBackToDashboard}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="text-sm font-medium">Back to Dashboard</span>
+              </button>
+              <div className="h-6 w-px bg-gray-300"></div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Confirmed Orders</h1>
+                <p className="text-sm text-gray-600 mt-1">Manage and track confirmed customer orders</p>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-right">
@@ -407,6 +427,36 @@ export function AdminOrders() {
                         </p>
                       </div>
                       
+                      {/* Status Update Buttons */}
+                      {order.status === 'CONFIRMED' && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'SHIPPED')}
+                          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                        >
+                          <Ship className="h-4 w-4" />
+                          <span>Mark as Shipped</span>
+                        </button>
+                      )}
+                      
+                      {order.status === 'SHIPPED' && (
+                        <button
+                          onClick={() => updateOrderStatus(order.id, 'DELIVERED')}
+                          className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center space-x-2"
+                        >
+                          <Package className="h-4 w-4" />
+                          <span>Mark as Delivered</span>
+                        </button>
+                      )}
+                      
+                      {order.status === 'DELIVERED' && (
+                        <div className="bg-green-50 border border-green-200 px-3 py-2 rounded-lg text-center">
+                          <div className="flex items-center space-x-2 text-green-700">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="text-sm font-medium">Order Completed</span>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="flex items-center space-x-2">
                         <div className="text-right text-xs text-gray-500">
                           <div className="font-medium text-gray-900">{order.user.fullName}</div>
@@ -496,6 +546,36 @@ export function AdminOrders() {
                       <div className="space-y-4">
                         <h4 className="font-semibold text-gray-900 text-sm">Order Management</h4>
                         <div className="space-y-3">
+                          {/* Status Update Buttons */}
+                          {order.status === 'CONFIRMED' && (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, 'SHIPPED')}
+                              className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center space-x-2 mb-3"
+                            >
+                              <Ship className="h-4 w-4" />
+                              <span>Mark as Shipped</span>
+                            </button>
+                          )}
+                          
+                          {order.status === 'SHIPPED' && (
+                            <button
+                              onClick={() => updateOrderStatus(order.id, 'DELIVERED')}
+                              className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center justify-center space-x-2 mb-3"
+                            >
+                              <Package className="h-4 w-4" />
+                              <span>Mark as Delivered</span>
+                            </button>
+                          )}
+                          
+                          {order.status === 'DELIVERED' && (
+                            <div className="w-full bg-green-50 border border-green-200 px-4 py-3 rounded-lg text-center mb-3">
+                              <div className="flex items-center justify-center space-x-2 text-green-700">
+                                <CheckCircle className="h-4 w-4" />
+                                <span className="text-sm font-medium">Order Completed</span>
+                              </div>
+                            </div>
+                          )}
+                          
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">
                               Update Status

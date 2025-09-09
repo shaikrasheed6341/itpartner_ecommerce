@@ -20,6 +20,7 @@ import PaymentSuccess from '@/pages/PaymentSuccess'
 import { Orders } from '@/pages/Orders'
 import { AdminOrders } from '@/pages/AdminOrders'
 import { AdminUsers } from '@/pages/AdminUsers'
+import { AdminShipping } from '@/pages/AdminShipping'
 
 function AppContent() {
   const location = useLocation()
@@ -45,6 +46,7 @@ function AppContent() {
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
+          <Route path="/admin/shipping/:orderId" element={<AdminShipping />} />
           <Route path="/admin/users" element={<AdminUsers />} />
         </Routes>
       </main>

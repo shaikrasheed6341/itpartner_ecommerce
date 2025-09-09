@@ -447,34 +447,58 @@ export function Orders() {
                               <Zap className="h-5 w-5 text-slate-600" />
                               <h4 className="text-lg font-semibold text-slate-900">Order Progress</h4>
                             </div>
-                            <div className="bg-white/80 rounded-xl p-4 border border-slate-200/60">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <div className={`p-2 rounded-full ${order.status === 'PENDING' ? 'bg-amber-100' : 'bg-emerald-100'}`}>
-                                    <Clock className={`h-4 w-4 ${order.status === 'PENDING' ? 'text-amber-600' : 'text-emerald-600'}`} />
+                            <div className="bg-white/80 rounded-xl p-6 border border-slate-200/60">
+                              <div className="space-y-4">
+                                {/* Simple Status Display */}
+                                <div className="flex items-center justify-center space-x-8">
+                                  {/* Confirmed */}
+                                  <div className="flex flex-col items-center space-y-2">
+                                    <div className={`p-3 rounded-full ${['CONFIRMED', 'SHIPPED', 'DELIVERED'].includes(order.status) ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+                                      <CheckCircle className={`h-6 w-6 ${['CONFIRMED', 'SHIPPED', 'DELIVERED'].includes(order.status) ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                    </div>
+                                    <span className="text-sm font-medium text-slate-900">Confirmed</span>
+                                    {['CONFIRMED', 'SHIPPED', 'DELIVERED'].includes(order.status) && (
+                                      <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                                    )}
                                   </div>
-                                  <span className="text-sm font-medium text-slate-900">Order Placed</span>
+                                  
+                                  {/* Shipped */}
+                                  <div className="flex flex-col items-center space-y-2">
+                                    <div className={`p-3 rounded-full ${['SHIPPED', 'DELIVERED'].includes(order.status) ? 'bg-blue-100' : 'bg-slate-100'}`}>
+                                      <Truck className={`h-6 w-6 ${['SHIPPED', 'DELIVERED'].includes(order.status) ? 'text-blue-600' : 'text-slate-400'}`} />
+                                    </div>
+                                    <span className="text-sm font-medium text-slate-900">Shipped</span>
+                                    {['SHIPPED', 'DELIVERED'].includes(order.status) && (
+                                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Delivered */}
+                                  <div className="flex flex-col items-center space-y-2">
+                                    <div className={`p-3 rounded-full ${order.status === 'DELIVERED' ? 'bg-green-100' : 'bg-slate-100'}`}>
+                                      <Package className={`h-6 w-6 ${order.status === 'DELIVERED' ? 'text-green-600' : 'text-slate-400'}`} />
+                                    </div>
+                                    <span className="text-sm font-medium text-slate-900">Delivered</span>
+                                    {order.status === 'DELIVERED' && (
+                                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                                    )}
+                                  </div>
                                 </div>
-                                <ArrowRight className="h-4 w-4 text-slate-400" />
-                                <div className="flex items-center space-x-2">
-                                  <div className={`p-2 rounded-full ${['CONFIRMED', 'SHIPPED', 'DELIVERED'].includes(order.status) ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                                    <CheckCircle className={`h-4 w-4 ${['CONFIRMED', 'SHIPPED', 'DELIVERED'].includes(order.status) ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                
+                                {/* Status Message */}
+                                <div className="text-center mt-6">
+                                  <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
+                                    order.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' :
+                                    order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-800' :
+                                    order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
+                                    'bg-slate-100 text-slate-800'
+                                  }`}>
+                                    {order.status === 'CONFIRMED' && '✅ Order Confirmed - Being prepared for shipment'}
+                                    {order.status === 'SHIPPED' && '🚚 Order Shipped - On its way to you'}
+                                    {order.status === 'DELIVERED' && '📦 Order Delivered - Thank you for your purchase!'}
+                                    {order.status === 'PENDING' && '⏳ Order Pending - Being processed'}
+                                    {order.status === 'CANCELLED' && '❌ Order Cancelled'}
                                   </div>
-                                  <span className="text-sm font-medium text-slate-900">Confirmed</span>
-                                </div>
-                                <ArrowRight className="h-4 w-4 text-slate-400" />
-                                <div className="flex items-center space-x-2">
-                                  <div className={`p-2 rounded-full ${['SHIPPED', 'DELIVERED'].includes(order.status) ? 'bg-blue-100' : 'bg-slate-100'}`}>
-                                    <Truck className={`h-4 w-4 ${['SHIPPED', 'DELIVERED'].includes(order.status) ? 'text-blue-600' : 'text-slate-400'}`} />
-                                  </div>
-                                  <span className="text-sm font-medium text-slate-900">Shipped</span>
-                                </div>
-                                <ArrowRight className="h-4 w-4 text-slate-400" />
-                                <div className="flex items-center space-x-2">
-                                  <div className={`p-2 rounded-full ${order.status === 'DELIVERED' ? 'bg-green-100' : 'bg-slate-100'}`}>
-                                    <Package className={`h-4 w-4 ${order.status === 'DELIVERED' ? 'text-green-600' : 'text-slate-400'}`} />
-                                  </div>
-                                  <span className="text-sm font-medium text-slate-900">Delivered</span>
                                 </div>
                               </div>
                             </div>

@@ -398,8 +398,8 @@ export const getAllOrders = async (req: any, res: any) => {
 // Update order status
 export const updateOrderStatus = async (req: any, res: any) => {
   try {
-    // Check if user is admin
-    if (!req.user || req.user.role !== 'ADMIN') {
+    // Check if user is admin - use req.admin instead of req.user
+    if (!req.admin || req.admin.role !== 'ADMIN') {
       return res.status(403).json({ 
         success: false, 
         message: 'Admin access required' 
@@ -482,3 +482,7 @@ export const updateOrderStatus = async (req: any, res: any) => {
     });
   }
 };
+
+// Ship order
+// Note: shipOrder function moved to shippingController.ts for better organization
+// Use updateShippingStage from shippingController instead

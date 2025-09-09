@@ -152,15 +152,7 @@ export function Header() {
                       onClick={() => setIsLoginDropdownOpen(false)}
                     >
                       <User className="h-4 w-4 mr-3" />
-                      Login as User
-                    </Link>
-                    <Link
-                      to="/admin/login"
-                      className="flex items-center px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
-                      onClick={() => setIsLoginDropdownOpen(false)}
-                    >
-                      <Shield className="h-4 w-4 mr-3" />
-                      Login as Admin
+                      Login
                     </Link>
                     <div className="border-t border-zinc-200 dark:border-zinc-700 my-1"></div>
                     <Link
@@ -265,24 +257,13 @@ export function Header() {
               </>
             ) : (
               <>
-                <div className="py-2 text-sm text-zinc-600 dark:text-zinc-400 font-medium">
-                  Are you an admin?
-                </div>
                 <Link
                   to="/login"
                   className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <User className="h-4 w-4" />
-                  Login as User
-                </Link>
-                <Link
-                  to="/admin/login"
-                  className="flex items-center gap-2 py-2 text-sm font-medium transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 text-zinc-600 dark:text-zinc-400"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <Shield className="h-4 w-4" />
-                  Login as Admin
+                  Login
                 </Link>
                 <div className="border-t border-zinc-200 dark:border-zinc-700 my-2"></div>
                 <Link

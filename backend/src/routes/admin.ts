@@ -8,6 +8,7 @@ import {
   getAllOrders,
   updateOrderStatus
 } from '../controllers/adminController';
+import { getConfirmedOrders } from '../controllers/shippingController';
 import { getAdminProducts } from '../controllers/productController';
 import { adminAuth } from '../middleware/adminAuth';
 
@@ -23,6 +24,11 @@ router.post('/generate-otp', generateNewOTP);
 
 // Public data routes (no auth required)
 router.get('/orders', getAllOrders);
+router.get('/orders/confirmed', adminAuth, getConfirmedOrders);
 router.get('/products', getAdminProducts);
+
+// Protected admin routes
+router.put('/orders/:orderId/status', adminAuth, updateOrderStatus);
+// Note: Shipping routes moved to shipping.ts for better organization
 
 export default router;
