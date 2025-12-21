@@ -1,17 +1,17 @@
 -- CreateEnum
-CREATE TYPE "public"."Role" AS ENUM ('ADMIN', 'USER');
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'USER');
 
 -- CreateEnum
-CREATE TYPE "public"."OrderStatus" AS ENUM ('PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED');
+CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'CONFIRMED', 'PACKED', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "public"."PaymentMethod" AS ENUM ('RAZORPAY');
+CREATE TYPE "PaymentMethod" AS ENUM ('RAZORPAY');
 
 -- CreateEnum
-CREATE TYPE "public"."PaymentStatus" AS ENUM ('PENDING', 'SUCCESS', 'FAILED');
+CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'SUCCESS', 'FAILED');
 
 -- CreateTable
-CREATE TABLE "public"."users" (
+CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE "public"."users" (
     "state" TEXT NOT NULL,
     "pinCode" TEXT NOT NULL,
     "livelocation" TEXT,
-    "role" "public"."Role" NOT NULL DEFAULT 'USER',
+    "role" "Role" NOT NULL DEFAULT 'USER',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -32,7 +32,7 @@ CREATE TABLE "public"."users" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."contact_forms" (
+CREATE TABLE "contact_forms" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE "public"."contact_forms" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."visitors" (
+CREATE TABLE "visitors" (
     "id" TEXT NOT NULL,
     "ipAddress" TEXT,
     "userAgent" TEXT,
@@ -59,7 +59,7 @@ CREATE TABLE "public"."visitors" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."daily_stats" (
+CREATE TABLE "daily_stats" (
     "id" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "totalVisits" INTEGER NOT NULL DEFAULT 0,
@@ -72,7 +72,7 @@ CREATE TABLE "public"."daily_stats" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."products" (
+CREATE TABLE "products" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "brand" TEXT NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE "public"."products" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."order_items" (
+CREATE TABLE "order_items" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE "public"."order_items" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."cart" (
+CREATE TABLE "cart" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "productId" TEXT NOT NULL,
@@ -111,29 +111,42 @@ CREATE TABLE "public"."cart" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."orders" (
+CREATE TABLE "orders" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "orderNumber" TEXT NOT NULL,
-    "status" "public"."OrderStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "OrderStatus" NOT NULL DEFAULT 'CONFIRMED',
     "totalAmount" DOUBLE PRECISION NOT NULL,
     "currency" TEXT NOT NULL DEFAULT 'INR',
     "paymentMethod" TEXT,
     "razorpayOrderId" TEXT,
+    "orderPlacedAt" TIMESTAMP(3),
+    "processingAt" TIMESTAMP(3),
+    "packedAt" TIMESTAMP(3),
+    "shippedAt" TIMESTAMP(3),
+    "inTransitAt" TIMESTAMP(3),
+    "outForDeliveryAt" TIMESTAMP(3),
+    "deliveredAt" TIMESTAMP(3),
+    "trackingNumber" TEXT,
+    "carrierName" TEXT,
+    "estimatedDelivery" TIMESTAMP(3),
+    "deliveryNotes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deliveryConfirmed" BOOLEAN,
+    "deliveryConfirmedAt" TIMESTAMP(3),
 
     CONSTRAINT "orders_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "public"."payments" (
+CREATE TABLE "payments" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
-    "paymentMethod" "public"."PaymentMethod",
+    "paymentMethod" "PaymentMethod",
     "amount" DOUBLE PRECISION NOT NULL,
-    "status" "public"."PaymentStatus" NOT NULL DEFAULT 'PENDING',
+    "status" "PaymentStatus" NOT NULL DEFAULT 'PENDING',
     "providerPaymentId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -142,7 +155,21 @@ CREATE TABLE "public"."payments" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."admins" (
+CREATE TABLE "order_tracking" (
+    "id" TEXT NOT NULL,
+    "orderId" TEXT NOT NULL,
+    "stage" "OrderStatus" NOT NULL,
+    "status" TEXT NOT NULL,
+    "notes" TEXT,
+    "updatedBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "order_tracking_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "admins" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
@@ -156,37 +183,40 @@ CREATE TABLE "public"."admins" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_email_key" ON "public"."users"("email");
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "daily_stats_date_key" ON "public"."daily_stats"("date");
+CREATE UNIQUE INDEX "daily_stats_date_key" ON "daily_stats"("date");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "orders_orderNumber_key" ON "public"."orders"("orderNumber");
+CREATE UNIQUE INDEX "orders_orderNumber_key" ON "orders"("orderNumber");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "orders_razorpayOrderId_key" ON "public"."orders"("razorpayOrderId");
+CREATE UNIQUE INDEX "orders_razorpayOrderId_key" ON "orders"("razorpayOrderId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "admins_email_key" ON "public"."admins"("email");
+CREATE UNIQUE INDEX "admins_email_key" ON "admins"("email");
 
 -- AddForeignKey
-ALTER TABLE "public"."order_items" ADD CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "public"."orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "order_items" ADD CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."order_items" ADD CONSTRAINT "order_items_productId_fkey" FOREIGN KEY ("productId") REFERENCES "public"."products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "order_items" ADD CONSTRAINT "order_items_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."cart" ADD CONSTRAINT "cart_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "cart" ADD CONSTRAINT "cart_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."cart" ADD CONSTRAINT "cart_productId_fkey" FOREIGN KEY ("productId") REFERENCES "public"."products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "cart" ADD CONSTRAINT "cart_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."orders" ADD CONSTRAINT "orders_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "orders" ADD CONSTRAINT "orders_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."payments" ADD CONSTRAINT "payments_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "public"."orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "payments" ADD CONSTRAINT "payments_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."payments" ADD CONSTRAINT "payments_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "payments" ADD CONSTRAINT "payments_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "order_tracking" ADD CONSTRAINT "order_tracking_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;

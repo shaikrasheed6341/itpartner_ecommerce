@@ -1,5 +1,5 @@
 import Razorpay from "razorpay";
-import { PrismaClient } from "../../generated/prisma";
+import { PrismaClient } from '@prisma/client';
 import { calculateCartTotals } from "../addtocartcontroller";
 import dotenv from 'dotenv';
 

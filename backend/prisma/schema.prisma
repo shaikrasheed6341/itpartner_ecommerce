@@ -1,230 +1,226 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
+// schema.prisma
 generator client {
-  provider = "prisma-client-js"
-   output   = "../src/generated/prisma"
-
+ provider = "prisma-client" 
+  output   = "../src/generated/prisma"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+  datasource db {
+    provider = "postgresql"
+  }
 
-enum Role {
-  ADMIN
-  USER
-}
+  enum Role {
+    ADMIN
+    USER
+  }
 
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PACKED
-  SHIPPED
-  IN_TRANSIT
-  OUT_FOR_DELIVERY
-  DELIVERED
-  CANCELLED
-}
-enum PaymentMethod {
-  RAZORPAY
-}
+  enum OrderStatus {
+    PENDING
+    CONFIRMED
+    PACKED
+    SHIPPED
+    IN_TRANSIT
+    OUT_FOR_DELIVERY
+    DELIVERED
+    CANCELLED
+  }
+  enum PaymentMethod {
+    RAZORPAY
+  }
 
-enum PaymentStatus {
-  PENDING
-  SUCCESS
-  FAILED
-}
+  enum PaymentStatus {
+    PENDING
+    SUCCESS
+    FAILED
+  }
 
-model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  password     String
-  fullName     String
-  phone        String
-  houseNumber  String
-  street       String
-  area         String
-  city         String
-  state        String
-  pinCode      String
-  livelocation String?
-  role         Role      @default(USER)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  cartItems    Cart[]
-  orders       Order[]
-  payments     Payment[]
+  model User {
+    id           String    @id @default(cuid())
+    email        String    @unique
+    password     String
+    fullName     String
+    phone        String
+    houseNumber  String
+    street       String
+    area         String
+    city         String
+    state        String
+    pinCode      String
+    livelocation String?
+    role         Role      @default(USER)
+    createdAt    DateTime  @default(now())
+    updatedAt    DateTime  @updatedAt
+    cartItems    Cart[]
+    orders       Order[]
+    payments     Payment[]
 
-  @@map("users")
-}
+    @@map("users")
+  }
 
-model ContactForm {
-  id      String  @id @default(cuid())
-  name    String
-  email   String
-  message String
-  phone   String?
-  service String?
+  model ContactForm {
+    id      String  @id @default(cuid())
+    name    String
+    email   String
+    message String
+    phone   String?
+    service String?
 
-  createdAt DateTime @default(now())
+    createdAt DateTime @default(now())
 
-  @@map("contact_forms")
-}
+    @@map("contact_forms")
+  }
 
-model Visitor {
-  id        String   @id @default(cuid())
-  ipAddress String?
-  userAgent String?
-  page      String?
-  referer   String?
-  count     String?
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
+  model Visitor {
+    id        String   @id @default(cuid())
+    ipAddress String?
+    userAgent String?
+    page      String?
+    referer   String?
+    count     String?
+    date      DateTime @default(now())
+    createdAt DateTime @default(now())
 
-  @@map("visitors")
-}
+    @@map("visitors")
+  }
 
-model DailyStats {
-  id           String   @id @default(cuid())
-  date         DateTime @unique @default(now())
-  totalVisits  Int      @default(0)
-  uniqueVisits Int      @default(0)
-  pageViews    String   @default("{}")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  model DailyStats {
+    id           String   @id @default(cuid())
+    date         DateTime @unique @default(now())
+    totalVisits  Int      @default(0)
+    uniqueVisits Int      @default(0)
+    pageViews    String   @default("{}")
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
 
-  @@map("daily_stats")
-}
+    @@map("daily_stats")
+  }
 
-model Product {
-  id         String      @id @default(uuid())
-  name       String
-  brand      String
-  image_url  String?
-  quantity   Int?
-  rate       Float
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  cartItems  Cart[]
-  orderItems OrderItem[]
+  model Product {
+    id         String      @id @default(uuid())
+    name       String
+    brand      String
+    image_url  String?
+    quantity   Int?
+    rate       Float
+    createdAt  DateTime    @default(now())
+    updatedAt  DateTime    @updatedAt
+    cartItems  Cart[]
+    orderItems OrderItem[]
 
-  @@map("products")
-}
+    @@map("products")
+  }
 
-model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  price     Float // Price at the time of order
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  model OrderItem {
+    id        String   @id @default(cuid())
+    orderId   String
+    productId String
+    quantity  Int
+    price     Float // Price at the time of order
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  // Relations
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+    // Relations
+    order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@map("order_items")
-}
+    @@map("order_items")
+  }
 
-model Cart {
-  id        String   @id @default(uuid())
-  userId    String
-  productId String
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  model Cart {
+    id        String   @id @default(uuid())
+    userId    String
+    productId String
+    quantity  Int      @default(1)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  // Relations
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+    // Relations
+    user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@map("cart")
-}
+    @@map("cart")
+  }
 
-model Order {
-  id          String      @id @default(cuid())
-  userId      String
-  orderNumber String      @unique
-  status      OrderStatus @default(CONFIRMED)
-  totalAmount Float
-  currency    String      @default("INR")
+  model Order {
+    id          String      @id @default(cuid())
+    userId      String
+    orderNumber String      @unique
+    status      OrderStatus @default(CONFIRMED)
+    totalAmount Float
+    currency    String      @default("INR")
 
-  paymentMethod   String?
-  razorpayOrderId String?  @unique
-  
-  // Order tracking fields
-  orderPlacedAt    DateTime?
-  processingAt     DateTime?
-  packedAt         DateTime?
-  shippedAt        DateTime?
-  inTransitAt       DateTime?
-  outForDeliveryAt DateTime?
-  deliveredAt      DateTime?
-  
-  // Shipping details
-  trackingNumber    String?
-  carrierName       String?
-  estimatedDelivery DateTime?
-  deliveryNotes     String?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+    paymentMethod   String?
+    razorpayOrderId String?  @unique
+    
+    // Order tracking fields
+    orderPlacedAt    DateTime?
+    processingAt     DateTime?
+    packedAt         DateTime?
+    shippedAt        DateTime?
+    inTransitAt       DateTime?
+    outForDeliveryAt DateTime?
+    deliveredAt      DateTime?
+    
+    // Shipping details
+    trackingNumber    String?
+    carrierName       String?
+    estimatedDelivery DateTime?
+    deliveryNotes     String?
+    
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
 
-   deliveryConfirmed    Boolean?
-  deliveryConfirmedAt  DateTime?
+    deliveryConfirmed    Boolean?
+    deliveryConfirmedAt  DateTime?
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orderItems OrderItem[]
-  payments   Payment[]
-  orderTracking OrderTracking[]
+    user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+    orderItems OrderItem[]
+    payments   Payment[]
+    orderTracking OrderTracking[]
 
-  @@map("orders")
-}
+    @@map("orders")
+  }
 
-model Payment {
-  id                String         @id @default(cuid())
-  orderId           String
-  userId            String
-  paymentMethod     PaymentMethod?
-  amount            Float
-  status            PaymentStatus  @default(PENDING)
-  providerPaymentId String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  model Payment {
+    id                String         @id @default(cuid())
+    orderId           String
+    userId            String
+    paymentMethod     PaymentMethod?
+    amount            Float
+    status            PaymentStatus  @default(PENDING)
+    providerPaymentId String?
+    createdAt         DateTime       @default(now())
+    updatedAt         DateTime       @updatedAt
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+    order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("payments")
-}
+    @@map("payments")
+  }
 
-model OrderTracking {
-  id          String   @id @default(cuid())
-  orderId     String
-  stage       OrderStatus
-  status      String   // "PENDING", "IN_PROGRESS", "COMPLETED"
-  notes       String?
-  updatedBy   String?  // Admin ID who updated this stage
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  model OrderTracking {
+    id          String   @id @default(cuid())
+    orderId     String
+    stage       OrderStatus
+    status      String   // "PENDING", "IN_PROGRESS", "COMPLETED"
+    notes       String?
+    updatedBy   String?  // Admin ID who updated this stage
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@map("order_tracking")
-}
+    @@map("order_tracking")
+  }
 
-model Admin {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  password     String
-  fullName     String
-  otp          String?
-  isFirstLogin Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  model Admin {
+    id           String   @id @default(cuid())
+    email        String   @unique
+    password     String
+    fullName     String
+    otp          String?
+    isFirstLogin Boolean  @default(true)
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
 
-  @@map("admins")
-}
+    @@map("admins")
+  }
