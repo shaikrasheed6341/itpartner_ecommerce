@@ -1,15 +1,12 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
+import {db} from '../db';
 export const register = async (req: any, res: any) => {
   try {
     const userData = req.body;
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await db.user.findUnique({
       where: { email: userData.email }
     });
 
@@ -26,7 +23,7 @@ export const register = async (req: any, res: any) => {
     const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
 
     // Create user
-    const user = await prisma.user.create({
+    const user = await db.user.create({
       data: {
         email: userData.email,
         password: hashedPassword,
@@ -92,7 +89,7 @@ export const login = async (req: any, res: any) => {
 
     // Test database connection first
     try {
-      await prisma.$connect();
+      await db.$connect();
       console.log('✅ Database connected successfully');
     } catch (dbError) {
       console.error('❌ Database connection failed:', dbError);
@@ -104,7 +101,7 @@ export const login = async (req: any, res: any) => {
     }
 
     // Find user
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { email }
     });
 
@@ -187,7 +184,7 @@ export const getProfile = async (req: any, res: any) => {
   try {
     const userId = (req as any).user.userId;
 
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: userId }
     });
 
@@ -250,7 +247,7 @@ export const getAllUsers = async (req: any, res: any) => {
       ],
     } : {};
 
-    const users = await prisma.user.findMany({
+    const users = await db.user.findMany({
       where: whereClause,
       take: limitNum,
       skip,
@@ -273,14 +270,14 @@ export const getAllUsers = async (req: any, res: any) => {
       }
     });
 
-    const totalCount = await prisma.user.count({
+    const totalCount = await db.user.count({
       where: whereClause,
     });
 
     const response = {
       success: true,
       data: {
-        users: users.map(user => ({ ...user, role: 'USER' })),
+        users: users.map((user: any) => ({ ...user, role: 'USER' })),
         pagination: {
           currentPage: pageNum,
           totalPages: Math.ceil(totalCount / limitNum),

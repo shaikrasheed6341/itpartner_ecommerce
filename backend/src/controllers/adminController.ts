@@ -1,10 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
+import { db } from '../db';
 
 // Generate 6-digit OTP
 const generateOTP = (): string => {
@@ -24,7 +21,7 @@ export const adminRegister = async (req: any, res: any) => {
     }
 
     // Check if admin already exists
-    const existingAdmin = await prisma.admin.findUnique({
+    const existingAdmin = await db.admin.findUnique({
       where: { email }
     });
 
@@ -42,7 +39,7 @@ export const adminRegister = async (req: any, res: any) => {
     const otp = generateOTP();
 
     // Create admin
-    const admin = await prisma.admin.create({
+    const admin = await db.admin.create({
       data: {
         email,
         password: hashedPassword,
@@ -88,7 +85,7 @@ export const adminLogin = async (req: any, res: any) => {
     }
 
     // Find admin
-    const admin = await prisma.admin.findUnique({
+    const admin = await db.admin.findUnique({
       where: { email }
     });
 
@@ -128,7 +125,7 @@ export const adminLogin = async (req: any, res: any) => {
       }
 
       // Mark as not first login and clear OTP
-      await prisma.admin.update({
+      await db.admin.update({
         where: { id: admin.id },
         data: { 
           otp: null,
@@ -181,7 +178,7 @@ export const adminProfile = async (req: any, res: any) => {
   try {
     const adminId = (req as any).user.adminId;
 
-    const admin = await prisma.admin.findUnique({
+    const admin = await db.admin.findUnique({
       where: { id: adminId },
       select: {
         id: true,
@@ -221,7 +218,7 @@ export const checkLoginRequirements = async (req: any, res: any) => {
     }
 
     // Find admin
-    const admin = await prisma.admin.findUnique({
+    const admin = await db.admin.findUnique({
       where: { email },
       select: {
         id: true,
@@ -268,7 +265,7 @@ export const generateNewOTP = async (req: any, res: any) => {
     }
 
     // Find admin
-    const admin = await prisma.admin.findUnique({
+    const admin = await db.admin.findUnique({
       where: { email }
     });
 
@@ -282,7 +279,7 @@ export const generateNewOTP = async (req: any, res: any) => {
     const newOTP = generateOTP();
 
     // Update admin with new OTP
-    await prisma.admin.update({
+    await db.admin.update({
       where: { id: admin.id },
       data: { otp: newOTP }
     });
@@ -304,7 +301,7 @@ export const generateNewOTP = async (req: any, res: any) => {
 export const getAllOrders = async (req: any, res: any) => {
   try {
     // Get all orders with order items and user details
-    const orders = await prisma.order.findMany({
+    const orders = await db.order.findMany({
       include: {
         orderItems: {
           include: {
@@ -350,7 +347,7 @@ export const getAllOrders = async (req: any, res: any) => {
     });
 
     // Format orders with order items
-    const formattedOrders = orders.map(order => ({
+    const formattedOrders = orders.map((order: any) => ({
       id: order.id,
       orderNumber: order.orderNumber,
       status: order.status,
@@ -360,7 +357,7 @@ export const getAllOrders = async (req: any, res: any) => {
       razorpayOrderId: order.razorpayOrderId,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
-      orderItems: order.orderItems.map(item => ({
+      orderItems: order.orderItems.map((item: any) => ({
         id: item.id,
         productId: item.productId,
         quantity: item.quantity,
@@ -371,7 +368,7 @@ export const getAllOrders = async (req: any, res: any) => {
       user: order.user,
       payments: order.payments,
       summary: {
-        totalItems: order.orderItems.reduce((sum, item) => sum + item.quantity, 0),
+        totalItems: order.orderItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
         itemCount: order.orderItems.length,
         totalAmount: order.totalAmount
       }
@@ -418,7 +415,8 @@ export const updateOrderStatus = async (req: any, res: any) => {
       });
     }
 
-    if (!status || !['PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(status)) {
+    // Validate against full enum from schema
+    if (!status || !['PENDING', 'CONFIRMED', 'PACKED', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].includes(status)) {
       return res.status(400).json({ 
         success: false, 
         message: 'Valid status is required' 
@@ -426,7 +424,7 @@ export const updateOrderStatus = async (req: any, res: any) => {
     }
 
     // Update order status
-    const updatedOrder = await prisma.order.update({
+    const updatedOrder = await db.order.update({
       where: { id: orderId },
       data: { status: status as any },
       include: {

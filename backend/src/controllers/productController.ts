@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma';
+import {db} from '../db';
 
 // Create a new product
 export const createProduct = async (req: any, res: any) => {
@@ -22,7 +22,7 @@ export const createProduct = async (req: any, res: any) => {
     }
 
     // Create product
-    const product = await prisma.product.create({
+    const product = await db.product.create({
       data: {
         name,
         brand,
@@ -55,11 +55,11 @@ export const testProducts = async (req: any, res: any) => {
     
     // Test basic Prisma connection
     try {
-      await prisma.$connect();
+      await db.$connect();
       console.log('✅ Prisma connected successfully');
       
       // Test a simple query
-      const productCount = await prisma.product.count();
+      const productCount = await db.product.count();
       console.log('📦 Product count:', productCount);
       
       res.json({
@@ -113,7 +113,7 @@ export const getAdminProducts = async (req: any, res: any) => {
     // Try to fetch products from database
     try {
       console.log('📦 Attempting to fetch products from database...');
-      const products = await prisma.product.findMany({
+      const products = await db.product.findMany({
         where: whereClause,
         take: limitNum,
         skip,
@@ -124,7 +124,7 @@ export const getAdminProducts = async (req: any, res: any) => {
 
       console.log('✅ Products fetched successfully:', products.length);
 
-      const totalCount = await prisma.product.count({
+      const totalCount = await db.product.count({
         where: whereClause,
       });
 
@@ -251,7 +251,7 @@ export const getAllProducts = async (req: any, res: any) => {
 
     // Try to fetch products
     console.log('📦 Attempting to fetch products from database...');
-    const products = await prisma.product.findMany({
+    const products = await db.product.findMany({
       where: whereClause,
       take: limitNum,
       skip,
@@ -262,7 +262,7 @@ export const getAllProducts = async (req: any, res: any) => {
 
     console.log('✅ Products fetched successfully:', products.length);
 
-    const totalCount = await prisma.product.count({
+    const totalCount = await db.product.count({
       where: whereClause,
     });
 
@@ -347,7 +347,7 @@ export const getProductById = async (req: any, res: any) => {
   try {
     const { id } = req.params;
 
-    const product = await prisma.product.findUnique({
+    const product = await db.product.findUnique({
       where: { id },
     });
 
@@ -379,7 +379,7 @@ export const updateProduct = async (req: any, res: any) => {
     const { name, brand, image_url, quantity, rate } = req.body;
 
     // Check if product exists
-    const existingProduct = await prisma.product.findUnique({
+    const existingProduct = await db.product.findUnique({
       where: { id },
     });
 
@@ -399,7 +399,7 @@ export const updateProduct = async (req: any, res: any) => {
     }
 
     // Update product
-    const updatedProduct = await prisma.product.update({
+    const updatedProduct = await db.product.update({
       where: { id },
       data: {
         name: name || existingProduct.name,
@@ -431,7 +431,7 @@ export const deleteProduct = async (req: any, res: any) => {
     const { id } = req.params;
 
     // Check if product exists
-    const existingProduct = await prisma.product.findUnique({
+    const existingProduct = await db.product.findUnique({
       where: { id },
     });
 
@@ -443,7 +443,7 @@ export const deleteProduct = async (req: any, res: any) => {
     }
 
     // Delete product
-    await prisma.product.delete({
+    await db.product.delete({
       where: { id },
     });
 

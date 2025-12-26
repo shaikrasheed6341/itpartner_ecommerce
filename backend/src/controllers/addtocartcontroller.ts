@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
-
+import { db } from "../db";
 export const calculateCartTotals = async (userId: string) => {
   try {
     // Get all cart items for the user with product details
-    const cartItems = await prisma.cart.findMany({
+    const cartItems = await db.cart.findMany({
       where: {
         userId: userId
       },
@@ -25,7 +23,7 @@ export const calculateCartTotals = async (userId: string) => {
     let totalAmount = 0;
     let totalItems = 0;
 
-    const items = cartItems.map(item => {
+    const items = cartItems.map((item: any) => {
       const itemTotal = item.quantity * item.product.rate;
       totalAmount += itemTotal;
       totalItems += item.quantity;
@@ -54,7 +52,7 @@ export const calculateCartTotals = async (userId: string) => {
 export const addToCart = async (userId: string, productId: string, quantity: number = 1) => {
   try {
     // Check if product exists
-    const product = await prisma.product.findUnique({
+    const product = await db.product.findUnique({
       where: { id: productId }
     });
 
@@ -63,7 +61,7 @@ export const addToCart = async (userId: string, productId: string, quantity: num
     }
 
     // Check if item already exists in cart
-    const existingCartItem = await prisma.cart.findFirst({
+    const existingCartItem = await db.cart.findFirst({
       where: {
         userId: userId,
         productId: productId
@@ -72,7 +70,7 @@ export const addToCart = async (userId: string, productId: string, quantity: num
 
     if (existingCartItem) {
       // Update quantity
-      const updatedCartItem = await prisma.cart.update({
+      const updatedCartItem = await db.cart.update({
         where: { id: existingCartItem.id },
         data: { quantity: existingCartItem.quantity + quantity },
         include: {
@@ -91,7 +89,7 @@ export const addToCart = async (userId: string, productId: string, quantity: num
       return updatedCartItem;
     } else {
       // Create new cart item
-      const newCartItem = await prisma.cart.create({
+      const newCartItem = await db.cart.create({
         data: {
           userId: userId,
           productId: productId,
@@ -121,7 +119,7 @@ export const addToCart = async (userId: string, productId: string, quantity: num
 
 export const removeFromCart = async (userId: string, cartItemId: string) => {
   try {
-    const deletedItem = await prisma.cart.delete({
+    const deletedItem = await db.cart.delete({
       where: {
         id: cartItemId,
         userId: userId
@@ -143,7 +141,7 @@ export const updateCartQuantity = async (userId: string, cartItemId: string, qua
       return await removeFromCart(userId, cartItemId);
     }
 
-    const updatedItem = await prisma.cart.update({
+    const updatedItem = await db.cart.update({
       where: {
         id: cartItemId,
         userId: userId
@@ -172,7 +170,7 @@ export const updateCartQuantity = async (userId: string, cartItemId: string, qua
 
 export const clearCart = async (userId: string) => {
   try {
-    const result = await prisma.cart.deleteMany({
+    const result = await db.cart.deleteMany({
       where: { userId: userId }
     });
 
@@ -230,7 +228,7 @@ export const removeFromCartController = async (req: any, res: any) => {
     const { productId } = req.params;
 
     // Find the cart item by productId
-    const cartItem = await prisma.cart.findFirst({
+    const cartItem = await db.cart.findFirst({
       where: {
         userId: userId,
         productId: productId
@@ -267,7 +265,7 @@ export const updateCartItemQuantityController = async (req: any, res: any) => {
     const { quantity } = req.body;
 
     // Find the cart item by productId
-    const cartItem = await prisma.cart.findFirst({
+    const cartItem = await db.cart.findFirst({
       where: {
         userId: userId,
         productId: productId
@@ -357,7 +355,7 @@ export const processCheckoutController = async (req: any, res: any) => {
     const { totalAmount, totalItems } = req.body;
 
     // Get current cart items
-    const cartItems = await prisma.cart.findMany({
+    const cartItems = await db.cart.findMany({
       where: { userId: userId },
       include: {
         product: {
@@ -380,7 +378,7 @@ export const processCheckoutController = async (req: any, res: any) => {
     }
 
     // Create order
-    const order = await prisma.order.create({
+    const order = await db.order.create({
       data: {
         userId: userId,
         orderNumber: `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -388,7 +386,7 @@ export const processCheckoutController = async (req: any, res: any) => {
         totalAmount: totalAmount,
         currency: 'INR',
         orderItems: {
-          create: cartItems.map(item => ({
+          create: cartItems.map((item: any) => ({
             productId: item.productId,
             quantity: item.quantity,
             price: item.product.rate
@@ -421,14 +419,16 @@ export const processCheckoutController = async (req: any, res: any) => {
       orderNumber: order.orderNumber,
       totalAmount: order.totalAmount,
       totalItems: order.orderItems.length,
-      itemCount: order.orderItems.reduce((sum, item) => sum + item.quantity, 0),
-      items: order.orderItems.map(item => ({
+      itemCount: order.orderItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
+      items: order.orderItems.map((item: any) => ({
         id: item.id,
         productId: item.productId,
         quantity: item.quantity,
         price: item.price,
         product: item.product
       })),
+
+
       status: order.status,
       createdAt: order.createdAt
     };

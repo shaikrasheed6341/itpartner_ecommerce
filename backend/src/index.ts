@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import { visitorTrackingMiddleware } from './middleware/visitorTracking';
+// import { visitorTrackingMiddleware } from './middleware/visitorTracking';
 import routes from './routes';
 
 // Load environment variables
@@ -23,7 +23,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Visitor tracking middleware (apply to all routes)
-app.use(visitorTrackingMiddleware);
+// app.use(visitorTrackingMiddleware);
 
 // Basic route
 app.get('/', (req, res) => {
@@ -36,7 +36,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api', routes);
+app.use('/api/v1', routes);
 
 // Start server
 app.listen(PORT, () => {

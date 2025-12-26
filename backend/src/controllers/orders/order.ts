@@ -1,12 +1,12 @@
 import Razorpay from "razorpay";
-import { PrismaClient } from '@prisma/client';
 import { calculateCartTotals } from "../addtocartcontroller";
 import dotenv from 'dotenv';
+import { db } from "../../db";
 
 // Load environment variables
 dotenv.config();
 
-const prisma = new PrismaClient();
+
 
 export const checktoken = async (req: any, res: any) => {
     const authHeader = req.headers.authorization;
@@ -86,7 +86,7 @@ export const createOrder = async (req: any, res: any) => {
         const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
         // Create order and order items in a transaction
-        const result = await prisma.$transaction(async (tx) => {
+        const result = await db.$transaction(async (tx: any) => {
             // Create order in database using the calculated total amount
             const order = await tx.order.create({
                 data: {
@@ -99,7 +99,7 @@ export const createOrder = async (req: any, res: any) => {
             });
 
             // Create order items for each cart item
-            const orderItems = [];
+            const orderItems: any[] = [];
             for (const cartItem of cartData.items) {
                 const orderItem = await tx.orderItem.create({
                     data: {
@@ -138,7 +138,7 @@ export const createOrder = async (req: any, res: any) => {
                     status: result.order.status,
                     createdAt: result.order.createdAt
                 },
-                orderItems: result.orderItems.map(item => ({
+                orderItems: result.orderItems.map((item: any) => ({
                     id: item.id,
                     productId: item.productId,
                     quantity: item.quantity,
@@ -193,7 +193,7 @@ export const createRazorpayOrder = async (req: any, res: any) => {
         }
 
         // Get order from database
-        const order = await prisma.order.findFirst({
+        const order = await db.order.findFirst({
             where: {
                 id: orderId,
                 userId: userId
@@ -225,7 +225,7 @@ export const createRazorpayOrder = async (req: any, res: any) => {
         });
 
         // Update order with Razorpay order ID
-        await prisma.order.update({
+        await db.order.update({
             where: { id: orderId },
             data: {
                 razorpayOrderId: razorpayOrder.id
@@ -292,7 +292,7 @@ export const verifyPayment = async (req: any, res: any) => {
         }
 
         // Get order from database
-        const order = await prisma.order.findFirst({
+        const order = await db.order.findFirst({
             where: {
                 razorpayOrderId: razorpay_order_id,
                 userId: userId
@@ -307,7 +307,7 @@ export const verifyPayment = async (req: any, res: any) => {
         }
 
         // Create payment record
-        const payment = await prisma.payment.create({
+        const payment = await db.payment.create({
             data: {
                 orderId: order.id,
                 userId: userId,
@@ -319,7 +319,7 @@ export const verifyPayment = async (req: any, res: any) => {
         });
 
         // Update order status
-        await prisma.order.update({
+        await db.order.update({
             where: { id: order.id },
             data: {
                 status: "CONFIRMED",
@@ -328,7 +328,7 @@ export const verifyPayment = async (req: any, res: any) => {
         });
 
         // Clear cart after successful payment
-        await prisma.cart.deleteMany({
+        await db.cart.deleteMany({
             where: { userId: userId }
         });
 
@@ -384,7 +384,7 @@ export const getOrderDetails = async (req: any, res: any) => {
         }
 
         // Get order with order items and product details
-        const order = await prisma.order.findFirst({
+        const order = await db.order.findFirst({
             where: {
                 id: orderId,
                 userId: userId
@@ -438,7 +438,7 @@ export const getOrderDetails = async (req: any, res: any) => {
         }
 
         // Format order items with totals
-        const formattedOrderItems = order.orderItems.map(item => ({
+        const formattedOrderItems = order.orderItems.map((item: any) => ({
             id: item.id,
             productId: item.productId,
             quantity: item.quantity,
@@ -446,6 +446,12 @@ export const getOrderDetails = async (req: any, res: any) => {
             itemTotal: item.quantity * item.price,
             product: item.product
         }));
+
+        const summary = {
+          totalItems: order.orderItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
+          itemCount: order.orderItems.length,
+          totalAmount: order.totalAmount
+        };
 
         res.status(200).json({
             success: true,
@@ -465,11 +471,7 @@ export const getOrderDetails = async (req: any, res: any) => {
                 orderItems: formattedOrderItems,
                 customer: order.user,
                 payments: order.payments,
-                summary: {
-                    totalItems: order.orderItems.reduce((sum, item) => sum + item.quantity, 0),
-                    itemCount: order.orderItems.length,
-                    totalAmount: order.totalAmount
-                }
+                summary
             }
         });
 
@@ -497,7 +499,7 @@ export const getUserOrders = async (req: any, res: any) => {
         const userId = req.user.userId;
 
         // Get all orders for the user with order items
-        const orders = await prisma.order.findMany({
+        const orders = await db.order.findMany({
             where: {
                 userId: userId
             },
@@ -531,7 +533,7 @@ export const getUserOrders = async (req: any, res: any) => {
         });
 
         // Format orders with order items
-        const formattedOrders = orders.map(order => ({
+        const formattedOrders = orders.map((order: any) => ({
             id: order.id,
             orderNumber: order.orderNumber,
             status: order.status,
@@ -540,7 +542,7 @@ export const getUserOrders = async (req: any, res: any) => {
             paymentMethod: order.paymentMethod,
             createdAt: order.createdAt,
             updatedAt: order.updatedAt,
-            orderItems: order.orderItems.map(item => ({
+            orderItems: order.orderItems.map((item: any) => ({
                 id: item.id,
                 productId: item.productId,
                 quantity: item.quantity,
@@ -550,7 +552,7 @@ export const getUserOrders = async (req: any, res: any) => {
             })),
             payments: order.payments,
             summary: {
-                totalItems: order.orderItems.reduce((sum, item) => sum + item.quantity, 0),
+                totalItems: order.orderItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
                 itemCount: order.orderItems.length
             }
         }));

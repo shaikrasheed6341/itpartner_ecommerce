@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import {db} from '../db';
 
-const prisma = new PrismaClient()
 
 // Get all confirmed orders for admin
 export const getConfirmedOrders = async (req: any, res: any) => {
@@ -13,7 +12,7 @@ export const getConfirmedOrders = async (req: any, res: any) => {
       });
     }
 
-    const orders = await prisma.order.findMany({
+    const orders = await db.order.findMany({
       where: {
         status: {
           in: ['CONFIRMED', 'PACKED', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY']
@@ -66,7 +65,7 @@ export const getConfirmedOrders = async (req: any, res: any) => {
       success: true,
       message: "Confirmed orders retrieved successfully",
       data: {
-        orders: orders.map(order => ({
+        orders: orders.map((order: any) => ({
           id: order.id,
           orderNumber: order.orderNumber,
           status: order.status,
@@ -76,7 +75,7 @@ export const getConfirmedOrders = async (req: any, res: any) => {
           createdAt: order.createdAt,
           updatedAt: order.updatedAt,
           summary: {
-            totalItems: order.orderItems.reduce((sum, item) => sum + item.quantity, 0),
+            totalItems: order.orderItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
             totalAmount: order.totalAmount
           },
           orderItems: order.orderItems,
@@ -141,7 +140,7 @@ export const updateShippingStage = async (req: any, res: any) => {
     }
 
     // Get current order
-    const currentOrder = await prisma.order.findUnique({
+    const currentOrder = await db.order.findUnique({
       where: { id: orderId }
     });
 
@@ -195,7 +194,7 @@ export const updateShippingStage = async (req: any, res: any) => {
     if (notes) updateData.deliveryNotes = notes;
 
     // Update order
-    const updatedOrder = await prisma.order.update({
+    const updatedOrder = await db.order.update({
       where: { id: orderId },
       data: updateData,
       include: {
@@ -275,7 +274,7 @@ export const getOrderTracking = async (req: any, res: any) => {
       });
     }
 
-    const order = await prisma.order.findFirst({
+    const order = await db.order.findFirst({
       where: { 
         id: orderId,
         userId: userId
