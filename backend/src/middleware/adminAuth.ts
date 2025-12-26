@@ -1,8 +1,6 @@
 import { NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import {db} from '../db';
 
 export const adminAuth = async (req: any, res: any, next: NextFunction) => {
   try {
@@ -35,7 +33,7 @@ export const adminAuth = async (req: any, res: any, next: NextFunction) => {
     }
 
     // Check if admin exists in database
-    const admin = await prisma.admin.findUnique({
+    const admin = await db.admin.findUnique({
       where: { id: decoded.adminId },
       select: {
         id: true,
