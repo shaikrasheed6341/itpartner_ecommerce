@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { contactApi } from '@/lib/api'
 import { Send, Loader2, CheckCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react'
 
 interface ContactFormData {
@@ -40,17 +41,9 @@ export function ContactForm({ className = '' }: ContactFormProps) {
     setErrorMessage('')
 
     try {
-      const response = await fetch('/api/contact/submit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
+      const result = await contactApi.submit(formData)
 
-      const result = await response.json()
-
-      if (response.ok && result.success) {
+      if (result?.success) {
         setSubmitStatus('success')
         setFormData({
           name: '',
@@ -61,7 +54,7 @@ export function ContactForm({ className = '' }: ContactFormProps) {
         })
       } else {
         setSubmitStatus('error')
-        setErrorMessage(result.error || 'Failed to submit form. Please try again.')
+        setErrorMessage(result?.error || 'Failed to submit form. Please try again.')
       }
     } catch (error) {
       setSubmitStatus('error')

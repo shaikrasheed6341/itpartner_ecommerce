@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, Loader2 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { productsApi, apiClient } from '@/lib/api'
 
 interface AddProductFormProps {
   onSuccess?: () => void
@@ -32,24 +33,18 @@ export function AddProductForm({ onSuccess, onError }: AddProductFormProps) {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          brand: formData.brand,
-          image_url: formData.image_url || null,
-          quantity: formData.quantity ? parseInt(formData.quantity) : null,
-          rate: parseFloat(formData.rate)
-        }),
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
+
+      const response = await productsApi.create({
+        name: formData.name,
+        brand: formData.brand,
+        image_url: formData.image_url || null,
+        quantity: formData.quantity ? parseInt(formData.quantity) : null,
+        rate: parseFloat(formData.rate)
       })
 
-      const data = await response.json()
-      
-      if (data.success) {
+      if (response?.success) {
         // Reset form
         setFormData({
           name: '',
@@ -62,15 +57,9 @@ export function AddProductForm({ onSuccess, onError }: AddProductFormProps) {
         onSuccess?.()
         alert('Product added successfully!')
       } else {
-        if (response.status === 401 || response.status === 403) {
-          const errorMessage = 'Authentication failed. Please login again.'
-          onError?.(errorMessage)
-          alert(errorMessage)
-        } else {
-          const errorMessage = data.error || 'Failed to add product'
-          onError?.(errorMessage)
-          alert('Error: ' + errorMessage)
-        }
+        const errorMessage = response?.error || 'Failed to add product'
+        onError?.(errorMessage)
+        alert('Error: ' + errorMessage)
       }
     } catch (error) {
       console.error('Error adding product:', error)
