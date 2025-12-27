@@ -19,20 +19,21 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL is required but missing');
 }
 
-const db =
-  global.drizzleDb ??
-  drizzle(
-    new Pool({
-      connectionString: process.env.DATABASE_URL,
-    })
-  );
+// Create a single shared pg Pool and drizzle instance. Cache both in the global object
+// so restarting in dev doesn't recreate new connection pools repeatedly.
+const pool = (global as any).__pgPool ?? new Pool({ connectionString: process.env.DATABASE_URL });
+const dbInstance = global.drizzleDb ?? drizzle(pool);
 
 if (process.env.NODE_ENV !== "production") {
-  global.drizzleDb = db;
+  (global as any).__pgPool = pool;
+  global.drizzleDb = dbInstance;
 }
 
+const db = dbInstance; // keep the same name used elsewhere for clarity
+
+
 // Attach simple model helpers to mimic Prisma-like API used by controllers
-import { admins, orders, payments, cart, orderItems, users } from './schema';
+import { admins, orders, payments, cart, orderItems, users, products } from './schema';
 import { eq } from 'drizzle-orm';
 
 const dbWithModels: any = db as any;
@@ -59,6 +60,64 @@ dbWithModels.admin = {
   update: async ({ where, data }: any) => {
     const result = await db.update(admins).set(data).where(eq(admins.id, where.id)).returning();
     return result[0];
+  }
+};
+
+// User helpers
+// Provides a lightweight Prisma-like API used by controllers: findUnique, create, update, findMany, count
+dbWithModels.user = {
+  findUnique: async ({ where }: any) => {
+    if (where?.email) {
+      const rows = await db.select().from(users).where(eq(users.email, where.email)).limit(1);
+      return rows[0] ?? null;
+    }
+    if (where?.id) {
+      const rows = await db.select().from(users).where(eq(users.id, where.id)).limit(1);
+      return rows[0] ?? null;
+    }
+    return null;
+  },
+  create: async ({ data }: any) => {
+    const record = { id: data.id ?? randomUUID(), ...data };
+    const result = await db.insert(users).values(record).returning();
+    return result[0];
+  },
+  update: async ({ where, data }: any) => {
+    const result = await db.update(users).set(data).where(eq(users.id, where.id)).returning();
+    return result[0];
+  },
+  // Basic findMany that supports take, skip, ordering and simple search (in-memory) for Prisma-like 'OR contains' structure
+  findMany: async ({ where, take, skip, orderBy }: any = {}) => {
+    let rows: any[] = await db.select().from(users);
+
+    // Support simple OR contains search (case-insensitive) produced by controllers
+    if (where?.OR && Array.isArray(where.OR) && where.OR.length > 0) {
+      const firstOr = where.OR[0] as any;
+      const key = Object.keys(firstOr)[0];
+      const contains = firstOr[key]?.contains;
+      if (typeof contains === 'string') {
+        const s = contains.toLowerCase();
+        rows = rows.filter((r: any) => (
+          (r.fullName && r.fullName.toLowerCase().includes(s)) ||
+          (r.email && r.email.toLowerCase().includes(s)) ||
+          (r.phone && r.phone.toLowerCase().includes(s))
+        ));
+      }
+    }
+
+    // orderBy createdAt desc
+    if (orderBy && orderBy.createdAt === 'desc') {
+      rows = rows.sort((a: any, b: any) => (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    }
+
+    if (typeof skip === 'number') rows = rows.slice(skip);
+    if (typeof take === 'number') rows = rows.slice(0, take);
+
+    return rows;
+  },
+  count: async ({ where }: any = {}) => {
+    const rows = await dbWithModels.user.findMany({ where });
+    return rows.length;
   }
 };
 
@@ -103,6 +162,57 @@ dbWithModels.cart = {
     }
     return null;
   }
+};
+
+// Product helpers
+// Basic create, findMany and count used by controllers
+dbWithModels.product = {
+  create: async ({ data }: any) => {
+    const record = { id: data.id ?? undefined, ...data };
+    const result = await db.insert(products).values(record).returning();
+    return result[0];
+  },
+  findMany: async ({ where, take, skip, orderBy }: any = {}) => {
+    let rows: any[] = await db.select().from(products);
+
+    // Support simple OR contains search on name or brand
+    if (where?.OR && Array.isArray(where.OR) && where.OR.length > 0) {
+      const firstOr = where.OR[0] as any;
+      const key = Object.keys(firstOr)[0];
+      const contains = firstOr[key]?.contains;
+      if (typeof contains === 'string') {
+        const s = contains.toLowerCase();
+        rows = rows.filter((r: any) => (
+          (r.name && r.name.toLowerCase().includes(s)) ||
+          (r.brand && r.brand.toLowerCase().includes(s))
+        ));
+      }
+    }
+
+    // orderBy createdAt desc
+    if (orderBy && orderBy.createdAt === 'desc') {
+      rows = rows.sort((a: any, b: any) => (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    }
+
+    if (typeof skip === 'number') rows = rows.slice(skip);
+    if (typeof take === 'number') rows = rows.slice(0, take);
+
+    return rows;
+  },
+  count: async ({ where }: any = {}) => {
+    const rows = await dbWithModels.product.findMany({ where });
+    return rows.length;
+  }
+};
+
+// Connection helpers (compatible with code expecting Prisma-like API)
+dbWithModels.$connect = async () => {
+  // Perform a lightweight query to verify connectivity
+  await pool.query('SELECT 1');
+};
+
+dbWithModels.$disconnect = async () => {
+  await pool.end();
 };
 
 export { dbWithModels as db, dbWithModels as prisma };
