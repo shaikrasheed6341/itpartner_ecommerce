@@ -86,20 +86,6 @@ export const login = async (req: any, res: any) => {
     const { email, password } = req.body;
 
     console.log('🔍 Attempting login for:', email);
-
-    // Test database connection first
-    try {
-      await db.$connect();
-      console.log('✅ Database connected successfully');
-    } catch (dbError) {
-      console.error('❌ Database connection failed:', dbError);
-      const response = {
-        success: false,
-        error: 'Database connection failed. Please try again later.'
-      };
-      return res.status(500).json(response);
-    }
-
     // Find user
     const user = await db.user.findUnique({
       where: { email }
