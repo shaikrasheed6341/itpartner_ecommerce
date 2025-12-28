@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback } from "react"
+import { cartApi, apiClient } from '@/lib/api'
 
 const CartContext = createContext({
   cart: {
@@ -6,13 +7,13 @@ const CartContext = createContext({
     totalItems: 0,
     totalAmount: 0
   },
-  addToCart: async (_item: any) => {},
+  addToCart: async (_item: any) => { },
   addMultipleToCart: async (_items: any) => ({ success: false, message: '', data: null }),
   processCheckout: async () => ({ success: false, message: '', data: { orderSummary: null } }),
-  fetchUserCart: async () => {},
-  removeFromCart: (_id: any) => {},
-  updateQuantity: (_id: any, _quantity: any) => {},
-  clearCart: () => {},
+  fetchUserCart: async () => { },
+  removeFromCart: (_id: any) => { },
+  updateQuantity: (_id: any, _quantity: any) => { },
+  clearCart: () => { },
   loading: false
 })
 
@@ -25,6 +26,7 @@ export function CartProvider({ children }: any) {
   const [loading] = useState(false)
 
   const addToCart = async (item: any) => {
+    const quantityToAdd = item.quantity || 1;
     try {
       const token = localStorage.getItem('authToken')
       if (!token) {
@@ -32,38 +34,38 @@ export function CartProvider({ children }: any) {
         setCart(prevCart => {
           // Generate a unique ID for the cart item
           const uniqueId = `${item.id}-${Date.now()}-${Math.random()}`
-          
+
           // If item exists with same productId, increase quantity
           const existingItem = prevCart.items.find(cartItem => cartItem.productId === item.id)
-          
+
           if (existingItem) {
             // If item exists, increase quantity
             const updatedItems = prevCart.items.map(cartItem =>
               cartItem.productId === item.id
-                ? { ...cartItem, quantity: cartItem.quantity + 1 }
+                ? { ...cartItem, quantity: cartItem.quantity + quantityToAdd }
                 : cartItem
             )
-            
+
             return {
               ...prevCart,
               items: updatedItems,
-              totalItems: prevCart.totalItems + 1,
-              totalAmount: prevCart.totalAmount + item.rate
+              totalItems: prevCart.totalItems + quantityToAdd,
+              totalAmount: prevCart.totalAmount + (item.rate * quantityToAdd)
             }
           } else {
-            // If item does not exist, add new item with quantity 1
-            const newItem = { 
-              ...item, 
+            // If item does not exist, add new item with specified quantity
+            const newItem = {
+              ...item,
               id: uniqueId,
               productId: item.id,
-              quantity: 1 
+              quantity: quantityToAdd
             }
-            
+
             return {
               ...prevCart,
               items: [...prevCart.items, newItem],
-              totalItems: prevCart.totalItems + 1,
-              totalAmount: prevCart.totalAmount + item.rate
+              totalItems: prevCart.totalItems + quantityToAdd,
+              totalAmount: prevCart.totalAmount + (item.rate * quantityToAdd)
             }
           }
         })
@@ -71,63 +73,54 @@ export function CartProvider({ children }: any) {
       }
 
       // If authenticated, call server API
-      const response = await fetch('http://localhost:5000/api/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          productId: item.id,
-          quantity: 1
-        })
-      })
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
 
-      const result = await response.json()
+      const result = await cartApi.add({ productId: item.id, quantity: quantityToAdd })
       console.log('Add to cart response:', result)
 
-      if (result.success) {
+      if (result?.success) {
         // Update local state with server response
         setCart(prevCart => {
           // Generate a unique ID for the cart item
           const uniqueId = `${item.id}-${Date.now()}-${Math.random()}`
-          
+
           // If item exists with same productId, increase quantity
           const existingItem = prevCart.items.find(cartItem => cartItem.productId === item.id)
-          
+
           if (existingItem) {
             // If item exists, increase quantity
             const updatedItems = prevCart.items.map(cartItem =>
               cartItem.productId === item.id
-                ? { ...cartItem, quantity: cartItem.quantity + 1 }
+                ? { ...cartItem, quantity: cartItem.quantity + quantityToAdd }
                 : cartItem
             )
-            
+
             return {
               ...prevCart,
               items: updatedItems,
-              totalItems: prevCart.totalItems + 1,
-              totalAmount: prevCart.totalAmount + item.rate
+              totalItems: prevCart.totalItems + quantityToAdd,
+              totalAmount: prevCart.totalAmount + (item.rate * quantityToAdd)
             }
           } else {
-            // If item does not exist, add new item with quantity 1
-            const newItem = { 
-              ...item, 
+            // If item does not exist, add new item with specified quantity
+            const newItem = {
+              ...item,
               id: uniqueId,
               productId: item.id,
-              quantity: 1 
+              quantity: quantityToAdd
             }
-            
+
             return {
               ...prevCart,
               items: [...prevCart.items, newItem],
-              totalItems: prevCart.totalItems + 1,
-              totalAmount: prevCart.totalAmount + item.rate
+              totalItems: prevCart.totalItems + quantityToAdd,
+              totalAmount: prevCart.totalAmount + (item.rate * quantityToAdd)
             }
           }
         })
       } else {
-        console.error('Failed to add item to cart:', result.error)
+        console.error('Failed to add item to cart:', result?.error)
       }
     } catch (error) {
       console.error('Error adding item to cart:', error)
@@ -135,38 +128,38 @@ export function CartProvider({ children }: any) {
       setCart(prevCart => {
         // Generate a unique ID for the cart item
         const uniqueId = `${item.id}-${Date.now()}-${Math.random()}`
-        
+
         // If item exists with same productId, increase quantity
         const existingItem = prevCart.items.find(cartItem => cartItem.productId === item.id)
-        
+
         if (existingItem) {
           // If item exists, increase quantity
           const updatedItems = prevCart.items.map(cartItem =>
             cartItem.productId === item.id
-              ? { ...cartItem, quantity: cartItem.quantity + 1 }
+              ? { ...cartItem, quantity: cartItem.quantity + quantityToAdd }
               : cartItem
           )
-          
+
           return {
             ...prevCart,
             items: updatedItems,
-            totalItems: prevCart.totalItems + 1,
-            totalAmount: prevCart.totalAmount + item.rate
+            totalItems: prevCart.totalItems + quantityToAdd,
+            totalAmount: prevCart.totalAmount + (item.rate * quantityToAdd)
           }
         } else {
-          // If item does not exist, add new item with quantity 1
-          const newItem = { 
-            ...item, 
+          // If item does not exist, add new item with specific quantity
+          const newItem = {
+            ...item,
             id: uniqueId,
             productId: item.id,
-            quantity: 1 
+            quantity: quantityToAdd
           }
-          
+
           return {
             ...prevCart,
             items: [...prevCart.items, newItem],
-            totalItems: prevCart.totalItems + 1,
-            totalAmount: prevCart.totalAmount + item.rate
+            totalItems: prevCart.totalItems + quantityToAdd,
+            totalAmount: prevCart.totalAmount + (item.rate * quantityToAdd)
           }
         }
       })
@@ -177,7 +170,7 @@ export function CartProvider({ children }: any) {
     setCart(prevCart => {
       const itemToRemove = prevCart.items.find(item => item.id === id)
       if (!itemToRemove) return prevCart
-      
+
       return {
         ...prevCart,
         items: prevCart.items.filter(item => item.id !== id),
@@ -190,9 +183,9 @@ export function CartProvider({ children }: any) {
   const updateQuantity = (id: any, quantity: any) => {
     setCart(prevCart => {
       const item = prevCart.items.find(item => item.id === id)
-      
+
       if (!item) return prevCart
-      
+
       if (quantity <= 0) {
         // Remove item if quantity is 0 or negative
         return {
@@ -202,12 +195,12 @@ export function CartProvider({ children }: any) {
           totalAmount: prevCart.totalAmount - (item.rate * item.quantity)
         }
       }
-      
+
       const quantityDifference = quantity - item.quantity
       const updatedItems = prevCart.items.map(item =>
         item.id === id ? { ...item, quantity } : item
       )
-      
+
       return {
         ...prevCart,
         items: updatedItems,
@@ -232,16 +225,10 @@ export function CartProvider({ children }: any) {
         throw new Error('Authentication required')
       }
 
-      const response = await fetch('http://localhost:5000/api/cart/add-multiple', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ items })
-      })
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
 
-      const result = await response.json()
+      const result = await cartApi.addMultiple(items)
       return result
     } catch (error) {
       console.error('Error adding multiple items to cart:', error)
@@ -259,19 +246,14 @@ export function CartProvider({ children }: any) {
         throw new Error('Authentication required')
       }
 
-      const response = await fetch('http://localhost:5000/api/cart/process-checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ 
-          totalAmount: cart.totalAmount,
-          totalItems: cart.totalItems
-        })
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
+
+      const result = await apiClient.post('/api/v1/cart/process-checkout', {
+        totalAmount: cart.totalAmount,
+        totalItems: cart.totalItems
       })
 
-      const result = await response.json()
       console.log('Process checkout response:', result) // Debug log
       return result
     } catch (error) {
@@ -290,17 +272,13 @@ export function CartProvider({ children }: any) {
         throw new Error('Authentication required')
       }
 
-      const response = await fetch('http://localhost:5000/api/cart', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
 
-      const result = await response.json()
+      const result = await cartApi.get()
       console.log('Fetch user cart response:', result) // Debug log
 
-      if (result.success && result.data) {
+      if (result?.success && result.data) {
         // Convert backend cart items to frontend format
         const backendItems = result.data.items.map((item: any) => ({
           id: item.id, // Use cart item's unique ID, not productId
