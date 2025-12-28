@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Search, Users, UserCheck, UserX, Mail, Phone, MapPin, Calendar } from 'lucide-react'
 import { AdminLayout } from '@/components/AdminLayout'
+import { authApi } from '@/lib/api'
 
 interface User {
   id: string
@@ -33,13 +34,15 @@ export function AdminUsers() {
   const fetchUsers = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5000/api/auth/users')
-      const data = await response.json()
-      
-      if (data.success) {
-        setUsers(data.data.users || [])
+      const response = await authApi.getAllUsers()
+
+      if (response?.success) {
+        setUsers(response.data?.users || [])
+      } else if (response?.data?.users) {
+        // some endpoints return raw data
+        setUsers(response.data.users)
       } else {
-        console.error('Failed to fetch users:', data.error)
+        console.error('Failed to fetch users:', response?.error)
         setUsers([])
       }
     } catch (error) {

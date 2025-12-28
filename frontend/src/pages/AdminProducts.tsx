@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Edit, Trash2, Search, Package, AlertCircle } from 'lucide-react'
 import { AdminLayout } from '@/components/AdminLayout'
+import { productsApi, apiClient } from '@/lib/api'
 
 interface Product {
   id: string
@@ -16,7 +17,7 @@ interface Product {
 }
 
 export function AdminProducts() {
-  const { isAdmin, token, logout } = useAuth()
+  const { isAdmin, token, logout, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,29 +34,32 @@ export function AdminProducts() {
 
   // Redirect if not admin or no token
   useEffect(() => {
+    if (authLoading) return
+
     if (!isAdmin) {
       navigate('/admin/login')
       return
     }
-    
+
     // Check if admin token exists
     if (!token) {
       alert('Admin authentication required. Please login again.')
       navigate('/admin/login')
     }
-  }, [isAdmin, token, navigate])
+  }, [isAdmin, token, navigate, authLoading])
 
   // Fetch products
   const fetchProducts = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5000/api/products')
-      const data = await response.json()
-      
-      if (data.success) {
-        setProducts(data.data.products || [])
+      const response = await productsApi.getAll()
+
+      if (response?.success && Array.isArray(response.data?.products)) {
+        setProducts(response.data.products || [])
+      } else if (Array.isArray(response?.data)) {
+        setProducts(response.data || [])
       } else {
-        console.error('Failed to fetch products:', data.error)
+        console.error('Failed to fetch products:', response?.error)
         setProducts([])
       }
     } catch (error) {
@@ -83,12 +87,12 @@ export function AdminProducts() {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Check admin token before proceeding
     if (!checkAdminToken()) {
       return
     }
-    
+
     try {
       const productData = {
         name: formData.name,
@@ -98,35 +102,27 @@ export function AdminProducts() {
         rate: parseFloat(formData.rate)
       }
 
-      // Use token from AuthContext
-      const url = editingProduct 
-        ? `http://localhost:5000/api/products/${editingProduct.id}`
-        : 'http://localhost:5000/api/products'
-      
-      const method = editingProduct ? 'PUT' : 'POST'
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(productData)
-      })
+      let response
+      if (editingProduct) {
+        response = await productsApi.update(editingProduct.id, productData)
+      } else {
+        response = await productsApi.create(productData)
+      }
 
-      const data = await response.json()
-
-      if (data.success) {
+      if (response?.success) {
         await fetchProducts() // Refresh products list
         resetForm()
         alert(editingProduct ? 'Product updated successfully!' : 'Product added successfully!')
       } else {
-        if (response.status === 401 || response.status === 403) {
+        if (response?.status === 401 || response?.status === 403) {
           alert('Authentication failed. Please login again.')
           logout()
           navigate('/admin/login')
         } else {
-          alert(`Error: ${data.error}`)
+          alert(`Error: ${response?.error || 'Failed to save product'}`)
         }
       }
     } catch (error) {
@@ -148,25 +144,21 @@ export function AdminProducts() {
 
     try {
       // Use token from AuthContext
-      const response = await fetch(`http://localhost:5000/api/products/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
 
-      const data = await response.json()
+      const response = await productsApi.delete(productId)
 
-      if (data.success) {
+      if (response?.success) {
         await fetchProducts() // Refresh products list
         alert('Product deleted successfully!')
       } else {
-        if (response.status === 401 || response.status === 403) {
+        if (response?.status === 401 || response?.status === 403) {
           alert('Authentication failed. Please login again.')
           logout()
           navigate('/admin/login')
         } else {
-          alert(`Error: ${data.error}`)
+          alert(`Error: ${response?.error || 'Failed to delete product'}`)
         }
       }
     } catch (error) {
@@ -194,7 +186,7 @@ export function AdminProducts() {
     if (!checkAdminToken()) {
       return
     }
-    
+
     setEditingProduct(product)
     setFormData({
       name: product.name,
@@ -211,6 +203,17 @@ export function AdminProducts() {
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.brand.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking authorization...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!isAdmin) {
     return null
@@ -424,7 +427,7 @@ export function AdminProducts() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          ₹{product.rate.toFixed(2)}
+                          ₹{(Number(product.rate) || 0).toFixed(2)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

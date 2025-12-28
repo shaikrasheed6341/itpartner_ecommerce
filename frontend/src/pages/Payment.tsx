@@ -9,13 +9,13 @@ export function Payment() {
   const { cart } = useCart()
   const navigate = useNavigate()
   const location = useLocation()
-  
+
   // Get total amount from navigation state (from notification) or use cart total
   const notificationTotal = location.state?.totalAmount
   const displayTotal = notificationTotal || cart.totalAmount
   const displayItems = location.state?.totalItems || cart.totalItems
   const orderSummary = location.state?.orderSummary
-  
+
   const [paymentMethod, setPaymentMethod] = useState('razorpay')
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
@@ -78,7 +78,7 @@ export function Payment() {
       }
 
       const razorpayData = await razorpayResponse.json()
-      
+
       // Step 3: Initialize Razorpay payment
       const options = {
         key: razorpayData.data.key_id,
@@ -106,11 +106,11 @@ export function Payment() {
             if (verifyResponse.ok) {
               const verifyData = await verifyResponse.json()
               // Payment successful - redirect to success page with order data
-              navigate('/payment-success', { 
-                state: { 
+              navigate('/payment-success', {
+                state: {
                   orderData: verifyData.data,
                   paymentData: verifyData.data.payment
-                } 
+                }
               })
             } else {
               alert('Payment verification failed. Please contact support.')
@@ -188,7 +188,7 @@ export function Payment() {
             {/* Order Summary */}
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Order Summary</h2>
-              
+
               <div className="space-y-4 mb-6">
                 {cart.items.map((item) => (
                   <div key={item.id} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
@@ -230,7 +230,7 @@ export function Payment() {
             {/* Payment Form */}
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Payment Information</h2>
-              
+
               {/* User Information */}
               <div className="bg-gray-50 p-4 rounded-lg mb-6">
                 <h3 className="font-medium text-gray-900 mb-2">Shipping Address</h3>
@@ -266,7 +266,7 @@ export function Payment() {
               <div className="bg-blue-50 p-4 rounded-lg mb-6">
                 <h3 className="font-medium text-blue-900 mb-2">Secure Payment</h3>
                 <p className="text-sm text-blue-700">
-                  Your payment will be processed securely through Razorpay. 
+                  Your payment will be processed securely through Razorpay.
                   You can pay using credit cards, debit cards, UPI, or net banking.
                 </p>
               </div>
@@ -300,4 +300,3 @@ export function Payment() {
     </div>
   )
 }
-

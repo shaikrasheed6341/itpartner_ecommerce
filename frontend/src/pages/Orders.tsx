@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Package, Clock, CheckCircle, Truck, XCircle, Eye, Calendar, CreditCard, User, MapPin, Phone, Mail, ShoppingBag, ArrowRight, ChevronDown, ChevronUp, Star, Shield, Zap } from 'lucide-react'
+import { apiClient } from '@/lib/api'
 
 interface OrderItem {
   id: string
@@ -66,18 +67,16 @@ export function Orders() {
   const fetchUserOrders = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5000/api/orders/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      })
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders')
+      const response = await apiClient.get('/api/v1/orders/')
+
+      if (response?.success) {
+        setOrders(response.data.orders)
+      } else if (Array.isArray(response?.data)) {
+        setOrders(response.data)
       }
-
-      const data = await response.json()
-      setOrders(data.data.orders)
     } catch (error) {
       console.error('Error fetching orders:', error)
       setError('Failed to load orders. Please try again.')
@@ -263,7 +262,7 @@ export function Orders() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-6">
                       <div className="text-right">
                         <p className="text-xl font-bold text-slate-900">
@@ -274,13 +273,13 @@ export function Orders() {
                           <span>{order.summary.totalItems} items</span>
                         </div>
                       </div>
-                      
+
                       <button
                         onClick={() => toggleOrderExpansion(order.id)}
                         className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                       >
-                        {expandedOrder === order.id ? 
-                          <ChevronUp className="h-5 w-5" /> : 
+                        {expandedOrder === order.id ?
+                          <ChevronUp className="h-5 w-5" /> :
                           <ChevronDown className="h-5 w-5" />
                         }
                       </button>
@@ -320,7 +319,7 @@ export function Orders() {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <div className="flex items-center space-x-1 text-sm text-slate-500">
                         <CreditCard className="h-4 w-4" />
@@ -461,7 +460,7 @@ export function Orders() {
                                       <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
                                     )}
                                   </div>
-                                  
+
                                   {/* Shipped */}
                                   <div className="flex flex-col items-center space-y-2">
                                     <div className={`p-3 rounded-full ${['SHIPPED', 'DELIVERED'].includes(order.status) ? 'bg-blue-100' : 'bg-slate-100'}`}>
@@ -472,7 +471,7 @@ export function Orders() {
                                       <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                                     )}
                                   </div>
-                                  
+
                                   {/* Delivered */}
                                   <div className="flex flex-col items-center space-y-2">
                                     <div className={`p-3 rounded-full ${order.status === 'DELIVERED' ? 'bg-green-100' : 'bg-slate-100'}`}>
@@ -484,15 +483,14 @@ export function Orders() {
                                     )}
                                   </div>
                                 </div>
-                                
+
                                 {/* Status Message */}
                                 <div className="text-center mt-6">
-                                  <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
-                                    order.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' :
-                                    order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-800' :
-                                    order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
-                                    'bg-slate-100 text-slate-800'
-                                  }`}>
+                                  <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${order.status === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' :
+                                      order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-800' :
+                                        order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
+                                          'bg-slate-100 text-slate-800'
+                                    }`}>
                                     {order.status === 'CONFIRMED' && '✅ Order Confirmed - Being prepared for shipment'}
                                     {order.status === 'SHIPPED' && '🚚 Order Shipped - On its way to you'}
                                     {order.status === 'DELIVERED' && '📦 Order Delivered - Thank you for your purchase!'}

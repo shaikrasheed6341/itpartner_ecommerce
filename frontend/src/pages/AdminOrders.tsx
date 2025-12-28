@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { Package, Clock, CheckCircle, Truck, XCircle, Eye, Calendar, CreditCard, User, MapPin, Phone, Mail, Search, Filter, ChevronDown, ChevronUp, MoreVertical, Edit3, ArrowLeft, Ship } from 'lucide-react'
+import { Package, Clock, CheckCircle, Truck, XCircle, Calendar, CreditCard, User, MapPin, Phone, Mail, Search, Filter, ChevronDown, ChevronUp, ArrowLeft, Ship } from 'lucide-react'
+import { ordersApi, apiClient } from '@/lib/api'
 
 interface OrderItem {
   id: string
@@ -66,7 +67,6 @@ export function AdminOrders() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [sortBy, setSortBy] = useState<string>('newest')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
 
   // Fetch all orders for admin
   useEffect(() => {
@@ -76,15 +76,12 @@ export function AdminOrders() {
   const fetchAllOrders = async () => {
     try {
       setLoading(true)
-      // Note: This endpoint needs to be created in backend to get all orders for admin
-      const response = await fetch('http://localhost:5000/api/admin/orders')
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders')
+      const response = await ordersApi.getAll()
+      if (response?.success && response.data?.orders) {
+        setOrders(response.data.orders)
+      } else if (Array.isArray(response?.data)) {
+        setOrders(response.data)
       }
-
-      const data = await response.json()
-      setOrders(data.data.orders)
     } catch (error) {
       console.error('Error fetching orders:', error)
       setError('Failed to load orders. Please try again.')
@@ -143,18 +140,10 @@ export function AdminOrders() {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus })
-      })
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
 
-      if (!response.ok) {
-        throw new Error('Failed to update order status')
-      }
+      await apiClient.put(`/api/admin/orders/${orderId}/status`, { status: newStatus })
 
       // Refresh orders after update
       fetchAllOrders()
@@ -162,10 +151,6 @@ export function AdminOrders() {
       console.error('Error updating order status:', error)
       alert('Failed to update order status')
     }
-  }
-
-  const handleShipOrder = (orderId: string) => {
-    navigate(`/admin/shipping/${orderId}`)
   }
 
   const handleBackToDashboard = () => {

@@ -18,6 +18,7 @@ import {
   Save,
   Send
 } from 'lucide-react'
+import { apiClient } from '@/lib/api'
 
 interface OrderItem {
   id: string
@@ -157,18 +158,11 @@ export function AdminShipping() {
   const fetchOrderDetails = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      })
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch order details')
-      }
-
-      const data = await response.json()
-      setOrder(data.data.order)
+      const response = await apiClient.get(`/api/admin/orders/${orderId}`)
+      setOrder(response.data?.order || getDummyOrder())
     } catch (error) {
       console.error('Error fetching order details:', error)
       // Show dummy data instead of error for testing
@@ -184,21 +178,17 @@ export function AdminShipping() {
     try {
       setSubmitting(true)
       
-      const response = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/ship`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          trackingNumber: trackingNumber || null,
-          carrierName: carrierName || null,
-          estimatedDelivery: estimatedDelivery || null,
-          notes: shippingNotes || null
-        })
+      if (token) apiClient.setAuthToken(token)
+      else apiClient.removeAuthToken()
+
+      const response = await apiClient.put(`/api/admin/orders/${orderId}/ship`, {
+        trackingNumber: trackingNumber || null,
+        carrierName: carrierName || null,
+        estimatedDelivery: estimatedDelivery || null,
+        notes: shippingNotes || null
       })
 
-      if (!response.ok) {
+      if (!response?.success) {
         throw new Error('Failed to ship order')
       }
 

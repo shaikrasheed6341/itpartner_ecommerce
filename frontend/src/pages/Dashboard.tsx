@@ -1,235 +1,250 @@
-import { Wifi, Camera, Laptop, Server, Shield, Phone, Settings, Zap } from 'lucide-react'
+import { Wifi, Camera, Laptop, Server, Shield, Phone, ArrowRight } from 'lucide-react'
 
 export function Dashboard() {
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Our Services</h2>
-        <p className="text-muted-foreground">
-          Professional IT solutions for your business needs
-        </p>
-      </div>
-      
+    <div className="flex-1">
+
+
       {/* Service Categories */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Network Solutions */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow">
-          <div className="p-6">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Wifi className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+      <section className="py-12 md:py-16 ">
+        <div className="container px-4 md:px-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Network Solutions */}
+            <div className="group bg-gradient-to-br from-zinc-800 via-violet-600 to-zinc-900 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="p-3 rounded-xl ">
+                  <Wifi className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Network Solutions</h3>
+                  <p className="text-sm text-white/80">WiFi & Infrastructure</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-xl font-semibold">Network Solutions</h3>
-                <p className="text-sm text-muted-foreground">WiFi & Infrastructure</p>
-              </div>
+              <ul className="space-y-3 text-sm text-white/95">
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0"></div>
+                  <span>WiFi Network Setup & Configuration</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0"></div>
+                  <span>Network Security & Firewall</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0"></div>
+                  <span>VPN Configuration</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0"></div>
+                  <span>Network Troubleshooting & Optimization</span>
+                </li>
+              </ul>
             </div>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span>WiFi Network Setup & Configuration</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span>Network Security & Firewall</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span>VPN Configuration</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span>Network Troubleshooting</span>
-              </li>
-            </ul>
 
+            {/* CCTV & Surveillance */}
+            <div className="group bg-gradient-to-br from-zinc-800 via-violet-600 to-zinc-900 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="p-3 rounded-xl shadow-md">
+                  <Camera className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">CCTV & Surveillance</h3>
+                  <p className="text-sm text-white/80">Security Systems</p>
+                </div>
+              </div>
+              <ul className="space-y-3 text-sm text-white/95">
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full flex-shrink-0"></div>
+                  <span>HD & IP Camera Installation</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full flex-shrink-0"></div>
+                  <span>24/7 Monitoring Systems</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full flex-shrink-0"></div>
+                  <span>Remote Access Setup</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full flex-shrink-0"></div>
+                  <span>Maintenance & Support Services</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Computer Services */}
+            <div className="group bg-gradient-to-br from-zinc-800 via-violet-600  to-zinc-900 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="p-3 rounded-xl shadow-md">
+                  <Laptop className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Computer Services</h3>
+                  <p className="text-sm text-white/80">Repair & Maintenance</p>
+                </div>
+              </div>
+              <ul className="space-y-3 text-sm text-white/95">
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full flex-shrink-0"></div>
+                  <span>Laptop & Desktop Repair</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full flex-shrink-0"></div>
+                  <span>Mac & Apple Services</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full flex-shrink-0"></div>
+                  <span>Virus Removal & Security</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-purple-400 rounded-full flex-shrink-0"></div>
+                  <span>Hardware Upgrades & Installation</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* IT Support */}
+            <div className="group bg-gradient-to-br from-zinc-800 via-violet-800 to-zinc-900 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="p-3 rounded-xl">
+                  <Phone className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">IT Support</h3>
+                  <p className="text-sm text-white/80">24/7 Assistance</p>
+                </div>
+              </div>
+              <ul className="space-y-3 text-sm text-white/95">
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0"></div>
+                  <span>Remote Technical Support</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0"></div>
+                  <span>On-site Support Services</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0"></div>
+                  <span>Emergency Response Team</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0"></div>
+                  <span>Preventive Maintenance Plans</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Server Management */}
+            <div className="group bg-gradient-to-br from-zinc-800 via-violet-800 to-zinc-900 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="p-3 rounded-xl">
+                  <Server className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Server Management</h3>
+                  <p className="text-sm text-white/80">Infrastructure</p>
+                </div>
+              </div>
+              <ul className="space-y-3 text-sm text-white/95">
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></div>
+                  <span>Server Setup & Configuration</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></div>
+                  <span>Data Backup Solutions</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></div>
+                  <span>Cloud Migration Services</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></div>
+                  <span>Performance Optimization</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Cybersecurity */}
+            <div className="group bg-gradient-to-br from-zinc-800 via-violet-800 to-zinc-900 rounded-2xl p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="p-3 rounded-xl">
+                  <Shield className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Cybersecurity</h3>
+                  <p className="text-sm text-white/80">Protection & Security</p>
+                </div>
+              </div>
+              <ul className="space-y-3 text-sm text-white/95">
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full flex-shrink-0"></div>
+                  <span>Comprehensive Security Audits</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full flex-shrink-0"></div>
+                  <span>Firewall Configuration & Management</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full flex-shrink-0"></div>
+                  <span>Data Encryption Solutions</span>
+                </li>
+                <li className="flex items-center space-x-3">
+                  <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full flex-shrink-0"></div>
+                  <span>Threat Detection & Response</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
-
-        {/* CCTV & Surveillance */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow">
-          <div className="p-6">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <Camera className="h-8 w-8 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">CCTV & Surveillance</h3>
-                <p className="text-sm text-muted-foreground">Security Systems</p>
-              </div>
-            </div>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>HD & IP Camera Installation</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>24/7 Monitoring Systems</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Remote Access Setup</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Maintenance & Support</span>
-              </li>
-            </ul>
-            
-          </div>
-        </div>
-
-        {/* Computer Services */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow">
-          <div className="p-6">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <Laptop className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">Computer Services</h3>
-                <p className="text-sm text-muted-foreground">Repair & Maintenance</p>
-              </div>
-            </div>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <span>Laptop & Desktop Repair</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <span>Mac & Apple Services</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <span>Virus Removal</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <span>Hardware Upgrades</span>
-              </li>
-            </ul>
-            
-          </div>
-        </div>
-
-        {/* IT Support */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow">
-          <div className="p-6">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-                <Phone className="h-8 w-8 text-orange-600 dark:text-orange-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">IT Support</h3>
-                <p className="text-sm text-muted-foreground">24/7 Assistance</p>
-              </div>
-            </div>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <span>Remote Technical Support</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <span>On-site Support</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <span>Emergency Response</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <span>Preventive Maintenance</span>
-              </li>
-            </ul>
-            
-          </div>
-        </div>
-
-        {/* Server Management */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow">
-          <div className="p-6">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="p-3 bg-red-100 dark:bg-red-900/20 rounded-lg">
-                <Server className="h-8 w-8 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">Server Management</h3>
-                <p className="text-sm text-muted-foreground">Infrastructure</p>
-              </div>
-            </div>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span>Server Setup & Configuration</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span>Data Backup Solutions</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span>Cloud Migration</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span>Performance Optimization</span>
-              </li>
-            </ul>
-            
-          </div>
-        </div>
-
-        {/* Cybersecurity */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow">
-          <div className="p-6">
-            <div className="flex items-center space-x-4 mb-4">
-              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
-                <Shield className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold">Cybersecurity</h3>
-                <p className="text-sm text-muted-foreground">Protection & Security</p>
-              </div>
-            </div>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                <span>Security Audits</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                <span>Firewall Configuration</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                <span>Data Encryption</span>
-              </li>
-              
-            </ul>
-
-          </div>
-        </div>
-      </div>
+      </section>
 
       {/* Call to Action */}
-      <div className="rounded-xl border bg-card text-card-foreground shadow p-8 text-center">
-        <h3 className="text-2xl font-bold mb-4">Need a Custom Solution?</h3>
-        <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-          We understand every business has unique IT requirements. Contact us for a personalized 
-          consultation and custom solution tailored to your specific needs.
-        </p>
-        <div className="space-x-4">
-          <button className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
-            Get Free Quote
-          </button>
-          <button className="inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
-            Schedule Consultation
-          </button>
+      <section className="relative py-20 md:py-32 bg-gradient-to-br from-violet-600 via-purple-600 to-violet-800 text-white overflow-hidden">
+        {/* Animated background pattern */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-40"></div>
+
+        {/* Glowing orbs */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-violet-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl"></div>
+
+        <div className="container relative z-10 px-4 md:px-6 text-center">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-violet-100 to-white bg-clip-text text-transparent drop-shadow-2xl">
+              Need a Custom Solution?
+            </h2>
+            <p className="text-lg md:text-xl text-white/95 mb-12 max-w-3xl mx-auto leading-relaxed">
+              We understand every business has unique IT requirements. Contact us for a personalized
+              consultation and custom solution tailored to your specific needs.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
+              <button className="group inline-flex h-16 items-center justify-center rounded-2xl bg-white px-12 text-lg font-bold text-violet-700 shadow-2xl shadow-violet-900/40 transition-all hover:bg-violet-50 hover:scale-110 hover:shadow-2xl hover:shadow-violet-900/60 active:scale-95">
+                Get Free Quote
+                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </button>
+              <button className="inline-flex h-16 items-center justify-center rounded-2xl border-2 border-white/40 bg-white/15 backdrop-blur-md px-12 text-lg font-bold text-white transition-all hover:bg-white/25 hover:border-white/60 hover:scale-110 hover:shadow-2xl hover:shadow-white/20 active:scale-95">
+                Schedule Consultation
+              </button>
+            </div>
+
+            {/* Trust indicators */}
+            <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-white/80">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>24/7 Support Available</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>Free Consultation</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>Expert Technicians</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
