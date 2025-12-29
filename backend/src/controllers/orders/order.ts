@@ -38,19 +38,9 @@ export const checktoken = async (req: any, res: any) => {
 }
 
 // Debug: Check if environment variables are loaded
-console.log('=== RAZORPAY CONFIGURATION DEBUG ===');
-console.log('RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID);
-console.log('RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? '***SET***' : 'NOT SET');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('All env vars starting with RAZORPAY:', Object.keys(process.env).filter(key => key.startsWith('RAZORPAY')));
-
 // Check if keys are valid
 if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-    console.error('❌ RAZORPAY CREDENTIALS MISSING!');
-    console.error('KEY_ID:', process.env.RAZORPAY_KEY_ID);
-    console.error('KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? 'SET' : 'NOT SET');
-} else {
-    console.log('✅ RAZORPAY CREDENTIALS FOUND');
+    throw new Error('RAZORPAY CREDENTIALS MISSING!');
 }
 
 const razorpay = new Razorpay({
@@ -133,7 +123,7 @@ export const createOrder = async (req: any, res: any) => {
                 order: {
                     id: result.order.id,
                     orderNumber: result.order.orderNumber,
-                    totalAmount: result.order.totalAmount,
+                    totalAmount: parseFloat(result.order.totalAmount) || 0,
                     currency: result.order.currency,
                     status: result.order.status,
                     createdAt: result.order.createdAt
@@ -142,8 +132,8 @@ export const createOrder = async (req: any, res: any) => {
                     id: item.id,
                     productId: item.productId,
                     quantity: item.quantity,
-                    price: item.price,
-                    itemTotal: item.quantity * item.price,
+                    price: parseFloat(item.price) || 0,
+                    itemTotal: item.quantity * (parseFloat(item.price) || 0),
                     product: item.product
                 })),
                 orderSummary: {
@@ -208,14 +198,15 @@ export const createRazorpayOrder = async (req: any, res: any) => {
         }
 
         // Create Razorpay order
+        const orderAmount = parseFloat(order.totalAmount) || 0;
         console.log('About to create Razorpay order with:');
-        console.log('- Amount:', Math.round(order.totalAmount * 100));
+        console.log('- Amount:', Math.round(orderAmount * 100));
         console.log('- Currency:', order.currency);
         console.log('- Receipt:', order.orderNumber);
         console.log('- Using Razorpay KEY_ID:', process.env.RAZORPAY_KEY_ID);
         
         const razorpayOrder = await razorpay.orders.create({
-            amount: Math.round(order.totalAmount * 100), // Convert to paise
+            amount: Math.round(orderAmount * 100), // Convert to paise
             currency: order.currency,
             receipt: order.orderNumber,
             notes: {
@@ -307,12 +298,13 @@ export const verifyPayment = async (req: any, res: any) => {
         }
 
         // Create payment record
+        const orderAmount = parseFloat(order.totalAmount) || 0;
         const payment = await db.payment.create({
             data: {
                 orderId: order.id,
                 userId: userId,
                 paymentMethod: "RAZORPAY",
-                amount: order.totalAmount,
+                amount: orderAmount,
                 status: "SUCCESS",
                 providerPaymentId: razorpay_payment_id
             }
@@ -340,7 +332,7 @@ export const verifyPayment = async (req: any, res: any) => {
                     id: order.id,
                     orderNumber: order.orderNumber,
                     status: "CONFIRMED",
-                    totalAmount: order.totalAmount
+                    totalAmount: orderAmount
                 },
                 payment: {
                     id: payment.id,
@@ -442,15 +434,15 @@ export const getOrderDetails = async (req: any, res: any) => {
             id: item.id,
             productId: item.productId,
             quantity: item.quantity,
-            price: item.price,
-            itemTotal: item.quantity * item.price,
+            price: parseFloat(item.price) || 0,
+            itemTotal: item.quantity * (parseFloat(item.price) || 0),
             product: item.product
         }));
 
         const summary = {
           totalItems: order.orderItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
           itemCount: order.orderItems.length,
-          totalAmount: order.totalAmount
+          totalAmount: parseFloat(order.totalAmount) || 0
         };
 
         res.status(200).json({
@@ -461,7 +453,7 @@ export const getOrderDetails = async (req: any, res: any) => {
                     id: order.id,
                     orderNumber: order.orderNumber,
                     status: order.status,
-                    totalAmount: order.totalAmount,
+                    totalAmount: parseFloat(order.totalAmount) || 0,
                     currency: order.currency,
                     paymentMethod: order.paymentMethod,
                     razorpayOrderId: order.razorpayOrderId,
@@ -537,7 +529,7 @@ export const getUserOrders = async (req: any, res: any) => {
             id: order.id,
             orderNumber: order.orderNumber,
             status: order.status,
-            totalAmount: order.totalAmount,
+            totalAmount: parseFloat(order.totalAmount) || 0,
             currency: order.currency,
             paymentMethod: order.paymentMethod,
             createdAt: order.createdAt,
@@ -546,8 +538,8 @@ export const getUserOrders = async (req: any, res: any) => {
                 id: item.id,
                 productId: item.productId,
                 quantity: item.quantity,
-                price: item.price,
-                itemTotal: item.quantity * item.price,
+                price: parseFloat(item.price) || 0,
+                itemTotal: item.quantity * (parseFloat(item.price) || 0),
                 product: item.product
             })),
             payments: order.payments,
