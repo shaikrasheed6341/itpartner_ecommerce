@@ -11,11 +11,7 @@ declare global {
   var drizzleDb: ReturnType<typeof drizzle> | undefined;
 }
 
-console.log('🔍 DB connection type:', typeof process.env.DATABASE_URL);
-console.log('🔍 DB connection string sample:', process.env.DATABASE_URL ? `${process.env.DATABASE_URL.slice(0,60)}...` : process.env.DATABASE_URL);
-
 if (!process.env.DATABASE_URL) {
-  console.error('⚠️ DATABASE_URL is not set. Please add it to your .env or environment variables.');
   throw new Error('DATABASE_URL is required but missing');
 }
 
@@ -34,7 +30,7 @@ const db = dbInstance; // keep the same name used elsewhere for clarity
 
 // Attach simple model helpers to mimic Prisma-like API used by controllers
 import { admins, orders, payments, cart, orderItems, users, products } from './schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 const dbWithModels: any = db as any;
 
@@ -126,17 +122,239 @@ dbWithModels.order = {
   findMany: async ({ where, include, orderBy }: any) => {
     let q: any = db.select().from(orders);
     if (where?.userId) q = q.where(eq(orders.userId, where.userId));
-    if (orderBy) q = q.orderBy({ column: orders.createdAt, direction: 'desc' });
+    // Apply orderBy - default to desc if orderBy is provided
+    if (orderBy) {
+      if (orderBy.createdAt === 'desc') {
+        q = q.orderBy(desc(orders.createdAt));
+      } else {
+        q = q.orderBy(desc(orders.createdAt)); // Default to desc
+      }
+    } else {
+      q = q.orderBy(desc(orders.createdAt)); // Default to desc
+    }
     const rows = await q;
+    
+    // Handle includes
+    if (include && rows.length > 0) {
+      const allOrderItems = await db.select().from(orderItems);
+      const allProducts = include.orderItems ? await db.select().from(products) : [];
+      const allUsers = include.user ? await db.select().from(users) : [];
+      const allPayments = include.payments ? await db.select().from(payments) : [];
+      
+      return rows.map((order: any) => {
+        const result: any = { ...order };
+        
+        // Include orderItems with products
+        if (include.orderItems) {
+          const items = allOrderItems.filter((item: any) => item.orderId === order.id);
+          result.orderItems = items.map((item: any) => {
+            const itemResult: any = { ...item };
+            if (include.orderItems.include?.product) {
+              const product = allProducts.find((p: any) => p.id === item.productId);
+              if (product) {
+                // Handle select for product
+                if (include.orderItems.include.product.select) {
+                  const selected: any = {};
+                  Object.keys(include.orderItems.include.product.select).forEach((key: string) => {
+                    if (include.orderItems.include.product.select[key] && (product as any)[key] !== undefined) {
+                      selected[key] = (product as any)[key];
+                    }
+                  });
+                  itemResult.product = selected;
+                } else {
+                  itemResult.product = product;
+                }
+              } else {
+                itemResult.product = null;
+              }
+            }
+            return itemResult;
+          });
+        }
+        
+        // Include user
+        if (include.user) {
+          const user = allUsers.find((u: any) => u.id === order.userId);
+          if (user) {
+            if (include.user.select) {
+              const selected: any = {};
+              Object.keys(include.user.select).forEach((key: string) => {
+                if (include.user.select[key] && (user as any)[key] !== undefined) {
+                  selected[key] = (user as any)[key];
+                }
+              });
+              result.user = selected;
+            } else {
+              result.user = user;
+            }
+          } else {
+            result.user = null;
+          }
+        }
+        
+        // Include payments
+        if (include.payments) {
+          const orderPayments = allPayments.filter((p: any) => p.orderId === order.id);
+          if (include.payments.select) {
+            result.payments = orderPayments.map((payment: any) => {
+              const selected: any = {};
+              Object.keys(include.payments.select).forEach((key: string) => {
+                if (include.payments.select[key] && (payment as any)[key] !== undefined) {
+                  selected[key] = (payment as any)[key];
+                }
+              });
+              return selected;
+            });
+          } else {
+            result.payments = orderPayments;
+          }
+        }
+        
+        return result;
+      });
+    }
+    
     return rows;
   },
-  findFirst: async ({ where }: any) => {
+  findFirst: async ({ where, include }: any) => {
     let q: any = db.select().from(orders);
     if (where?.id) q = q.where(eq(orders.id, where.id));
     if (where?.userId) q = q.where(eq(orders.userId, where.userId));
     if (where?.razorpayOrderId) q = q.where(eq(orders.razorpayOrderId, where.razorpayOrderId));
     const rows = await q.limit(1);
-    return rows[0] ?? null;
+    const order = rows[0] ?? null;
+    
+    if (!order) return null;
+    
+    // Handle includes
+    if (include) {
+      const result: any = { ...order };
+      
+      // Include orderItems with products
+      if (include.orderItems) {
+        const items = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+        const allProducts = include.orderItems.include?.product ? await db.select().from(products) : [];
+        
+        result.orderItems = items.map((item: any) => {
+          const itemResult: any = { ...item };
+          if (include.orderItems.include?.product) {
+            const product = allProducts.find((p: any) => p.id === item.productId);
+            if (product) {
+              if (include.orderItems.include.product.select) {
+                const selected: any = {};
+                Object.keys(include.orderItems.include.product.select).forEach((key: string) => {
+                  if (include.orderItems.include.product.select[key] && (product as any)[key] !== undefined) {
+                    selected[key] = (product as any)[key];
+                  }
+                });
+                itemResult.product = selected;
+              } else {
+                itemResult.product = product;
+              }
+            } else {
+              itemResult.product = null;
+            }
+          }
+          return itemResult;
+        });
+      }
+      
+      // Include user
+      if (include.user) {
+        const userRows = await db.select().from(users).where(eq(users.id, order.userId)).limit(1);
+        const user = userRows[0] ?? null;
+        if (user) {
+          if (include.user.select) {
+            const selected: any = {};
+            Object.keys(include.user.select).forEach((key: string) => {
+              if (include.user.select[key] && (user as any)[key] !== undefined) {
+                selected[key] = (user as any)[key];
+              }
+            });
+            result.user = selected;
+          } else {
+            result.user = user;
+          }
+        } else {
+          result.user = null;
+        }
+      }
+      
+      // Include payments
+      if (include.payments) {
+        const orderPayments = await db.select().from(payments).where(eq(payments.orderId, order.id));
+        if (include.payments.select) {
+          result.payments = orderPayments.map((payment: any) => {
+            const selected: any = {};
+            Object.keys(include.payments.select).forEach((key: string) => {
+              if (include.payments.select[key] && (payment as any)[key] !== undefined) {
+                selected[key] = (payment as any)[key];
+              }
+            });
+            return selected;
+          });
+        } else {
+          result.payments = orderPayments;
+        }
+      }
+      
+      return result;
+    }
+    
+    return order;
+  },
+  create: async ({ data, include }: any) => {
+    const orderId = data.id ?? randomUUID();
+    const orderRecord = {
+      id: orderId,
+      userId: data.userId,
+      orderNumber: data.orderNumber,
+      status: data.status,
+      totalAmount: data.totalAmount,
+      currency: data.currency || 'INR',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const orderResult = await db.insert(orders).values(orderRecord).returning();
+    const createdOrder = orderResult[0];
+
+    // Handle nested orderItems creation
+    let createdOrderItems: any[] = [];
+    if (data.orderItems?.create && Array.isArray(data.orderItems.create)) {
+      for (const itemData of data.orderItems.create) {
+        const itemRecord = {
+          id: randomUUID(),
+          orderId: orderId,
+          productId: itemData.productId,
+          quantity: itemData.quantity,
+          price: itemData.price,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        const itemResult = await db.insert(orderItems).values(itemRecord).returning();
+        createdOrderItems.push(itemResult[0]);
+      }
+    }
+
+    // If include.orderItems is requested, attach them with products
+    if (include?.orderItems) {
+      const allProducts = await db.select().from(products);
+      const itemsWithProducts = createdOrderItems.map((item: any) => {
+        const product = allProducts.find((p: any) => p.id === item.productId);
+        return {
+          ...item,
+          product: product || null
+        };
+      });
+
+      return {
+        ...createdOrder,
+        orderItems: itemsWithProducts
+      };
+    }
+
+    return createdOrder;
   },
   update: async ({ where, data }: any) => {
     const result = await db.update(orders).set(data).where(eq(orders.id, where.id)).returning();
@@ -153,8 +371,98 @@ dbWithModels.payment = {
   }
 };
 
-// Cart helper (deleteMany)
+// Cart helpers
 dbWithModels.cart = {
+  findMany: async ({ where, include }: any = {}) => {
+    let rows: any[] = await db.select().from(cart);
+
+    if (where?.userId) {
+      rows = rows.filter((r: any) => r.userId === where.userId);
+    }
+
+    // If include.product is requested, join with products
+    if (include?.product) {
+      const allProducts = await db.select().from(products);
+      rows = rows.map((cartItem: any) => {
+        const product = allProducts.find((p: any) => p.id === cartItem.productId);
+        return {
+          ...cartItem,
+          product: product || null
+        };
+      });
+    }
+
+    return rows;
+  },
+
+  findFirst: async ({ where, include }: any = {}) => {
+    let rows: any[] = await db.select().from(cart);
+
+    if (where?.userId) {
+      rows = rows.filter((r: any) => r.userId === where.userId);
+    }
+    if (where?.productId) {
+      rows = rows.filter((r: any) => r.productId === where.productId);
+    }
+    if (where?.id) {
+      rows = rows.filter((r: any) => r.id === where.id);
+    }
+
+    const row = rows[0] ?? null;
+
+    // If include.product is requested, join with product
+    if (row && include?.product) {
+      const allProducts = await db.select().from(products);
+      const product = allProducts.find((p: any) => p.id === row.productId);
+      return {
+        ...row,
+        product: product || null
+      };
+    }
+
+    return row;
+  },
+
+  create: async ({ data, include }: any) => {
+    const record = { id: data.id ?? randomUUID(), ...data };
+    const result = await db.insert(cart).values(record).returning();
+    const created = result[0];
+
+    // If include.product is requested, join with product
+    if (created && include?.product) {
+      const allProducts = await db.select().from(products);
+      const product = allProducts.find((p: any) => p.id === created.productId);
+      return {
+        ...created,
+        product: product || null
+      };
+    }
+
+    return created;
+  },
+
+  update: async ({ where, data, include }: any) => {
+    const result = await db.update(cart).set(data).where(eq(cart.id, where.id)).returning();
+    const updated = result[0];
+
+    // If include.product is requested, join with product
+    if (updated && include?.product) {
+      const allProducts = await db.select().from(products);
+      const product = allProducts.find((p: any) => p.id === updated.productId);
+      return {
+        ...updated,
+        product: product || null
+      };
+    }
+
+    return updated;
+  },
+
+  delete: async ({ where }: any) => {
+    const result = await db.delete(cart).where(eq(cart.id, where.id)).returning();
+    return result[0];
+  },
+
   deleteMany: async ({ where }: any) => {
     if (where?.userId) {
       const result = await db.delete(cart).where(eq(cart.userId, where.userId)).returning();
@@ -167,6 +475,14 @@ dbWithModels.cart = {
 // Product helpers
 // Basic create, findMany and count used by controllers
 dbWithModels.product = {
+  findUnique: async ({ where }: any) => {
+    if (where?.id) {
+      const rows = await db.select().from(products);
+      const product = rows.find((p: any) => p.id === where.id);
+      return product ?? null;
+    }
+    return null;
+  },
   create: async ({ data }: any) => {
     const record = { id: data.id ?? undefined, ...data };
     const result = await db.insert(products).values(record).returning();
@@ -202,6 +518,30 @@ dbWithModels.product = {
   count: async ({ where }: any = {}) => {
     const rows = await dbWithModels.product.findMany({ where });
     return rows.length;
+  },
+  update: async ({ where, data }: any) => {
+    if (!where?.id) {
+      throw new Error('Product ID is required for update');
+    }
+    
+    // Convert snake_case to camelCase if needed
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.brand !== undefined) updateData.brand = data.brand;
+    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+    if (data.image_url !== undefined) updateData.imageUrl = data.image_url;
+    if (data.quantity !== undefined) updateData.quantity = data.quantity;
+    if (data.rate !== undefined) updateData.rate = data.rate;
+    
+    // Add updatedAt timestamp
+    updateData.updatedAt = new Date();
+    
+    const result = await db.update(products)
+      .set(updateData)
+      .where(eq(products.id, where.id))
+      .returning();
+    
+    return result[0] ?? null;
   }
 };
 
