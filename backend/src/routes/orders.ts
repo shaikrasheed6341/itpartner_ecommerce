@@ -13,10 +13,10 @@ router.post('/razorpay/create', authenticateToken, createRazorpayOrder);
 // Verify payment
 router.post('/razorpay/verify', authenticateToken, verifyPayment);
 
+// Get all orders for a user (must come before /:orderId to avoid route conflicts)
+router.get('/', authenticateToken, getUserOrders);
+
 // Get order details with order items
 router.get('/:orderId', authenticateToken, getOrderDetails);
-
-// Get all orders for a user
-router.get('/', authenticateToken, getUserOrders);
 
 export default router;
