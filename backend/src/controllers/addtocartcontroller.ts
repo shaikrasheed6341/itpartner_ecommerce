@@ -1,6 +1,8 @@
 import { db } from "../db";
 export const calculateCartTotals = async (userId: string) => {
   try {
+    console.log('calculateCartTotals called', { userId });
+
     // Get all cart items for the user with product details
     const cartItems = await db.cart.findMany({
       where: {
@@ -19,19 +21,36 @@ export const calculateCartTotals = async (userId: string) => {
       }
     });
 
-    // Calculate totals
+    console.log('calculateCartTotals: fetched items count', cartItems.length);
+
+    // Calculate totals safely and collect warnings
     let totalAmount = 0;
     let totalItems = 0;
+    const warnings: any[] = [];
 
     const items = cartItems.map((item: any) => {
-      const itemTotal = item.quantity * item.product.rate;
+      // Guard against missing product (deleted or inconsistent data)
+      if (!item.product) {
+        warnings.push({ id: item.id, productId: item.productId, reason: 'Product not found (possibly deleted)' });
+        return {
+          id: item.id,
+          productId: item.productId,
+          quantity: item.quantity || 0,
+          product: null
+        };
+      }
+
+      const quantity = Number(item.quantity) || 0;
+      const rate = Number(item.product.rate) || 0;
+
+      const itemTotal = quantity * rate;
       totalAmount += itemTotal;
-      totalItems += item.quantity;
+      totalItems += quantity;
 
       return {
         id: item.id,
         productId: item.productId,
-        quantity: item.quantity,
+        quantity,
         product: item.product
       };
     });
@@ -40,12 +59,13 @@ export const calculateCartTotals = async (userId: string) => {
       items,
       totalAmount: Math.round(totalAmount * 100) / 100, // Round to 2 decimal places
       totalItems,
-      itemCount: items.length
+      itemCount: items.length,
+      warnings
     };
 
   } catch (error) {
     console.error('Error calculating cart totals:', error);
-    throw new Error('Failed to calculate cart totals');
+    throw new Error('Failed to calculate cart totals: ' + (error instanceof Error ? error.message : String(error)));
   }
 };
 
@@ -113,7 +133,8 @@ export const addToCart = async (userId: string, productId: string, quantity: num
 
   } catch (error) {
     console.error('Error adding to cart:', error);
-    throw new Error('Failed to add item to cart');
+    // Preserve original error message for better debugging
+    throw new Error(error instanceof Error ? error.message : String(error));
   }
 };
 
@@ -316,8 +337,15 @@ export const clearCartController = async (req: any, res: any) => {
 
 export const addMultipleToCartController = async (req: any, res: any) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
     const { items } = req.body;
+
+    console.log('addMultipleToCartController called', { userId, items });
+
+    if (!userId) {
+      console.error('addMultipleToCartController: missing userId');
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
 
     if (!items || !Array.isArray(items)) {
       return res.status(400).json({
@@ -326,19 +354,32 @@ export const addMultipleToCartController = async (req: any, res: any) => {
       });
     }
 
-    const results = [];
+    const added: any[] = [];
+    const errors: any[] = [];
+
     for (const item of items) {
       const { productId, quantity = 1 } = item;
-      const result = await addToCart(userId, productId, quantity);
-      results.push(result);
+      try {
+        console.log('Adding to cart', { userId, productId, quantity });
+        const result = await addToCart(userId, productId, quantity);
+        console.log('Added to cart result', { id: result?.id, productId: result?.productId });
+        added.push(result);
+      } catch (err: any) {
+        console.error('Error adding item to cart', { item, err: err?.message || err });
+        errors.push({ item, error: err?.message || String(err) });
+      }
     }
 
     const finalResult = await calculateCartTotals(userId);
     
     res.json({
-      success: true,
-      message: 'Multiple items added to cart successfully',
-      data: finalResult
+      success: errors.length === 0,
+      message: errors.length === 0 ? 'Multiple items added to cart successfully' : 'Some items failed to add to cart',
+      data: {
+        cart: finalResult,
+        added,
+        errors
+      }
     });
   } catch (error) {
     console.error('Error in addMultipleToCartController:', error);

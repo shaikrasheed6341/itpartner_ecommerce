@@ -1,4 +1,4 @@
-import {db} from '../db';
+import { db } from '../db';
 
 // Create a new product
 export const createProduct = async (req: any, res: any) => {
@@ -58,7 +58,7 @@ export const bulkCreateProducts = async (req: any, res: any) => {
         'Wireless Headset', 'Power Adapter', 'HDMI Cable', 'Motherboard', 'Graphics Card'
       ];
       const brands = ['BrandA', 'BrandB', 'Kingstone', 'CP PLUSE', 'Acme', 'GenericCo', 'TechCorp'];
-      const placeholderImages = ['https://via.placeholder.com/320x240?text=Product+Image','https://picsum.photos/320/240'];
+      const placeholderImages = ['https://via.placeholder.com/320x240?text=Product+Image', 'https://picsum.photos/320/240'];
       const arr: any[] = [];
       for (let i = 0; i < n; i++) {
         arr.push({
@@ -145,13 +145,15 @@ const insertProducts = async (items: any[]) => {
 
     try {
       console.debug('Inserting product (index):', index, 'image_url:', np.image_url);
-      const createdP = await db.product.create({ data: {
-        name: np.name,
-        brand: np.brand,
-        imageUrl: np.image_url ?? null,
-        quantity: np.quantity !== undefined && np.quantity !== '' ? Number(np.quantity) : null,
-        rate: rateNum
-      }});
+      const createdP = await db.product.create({
+        data: {
+          name: np.name,
+          brand: np.brand,
+          imageUrl: np.image_url ?? null,
+          quantity: np.quantity !== undefined && np.quantity !== '' ? Number(np.quantity) : null,
+          rate: rateNum
+        }
+      });
       console.debug('Inserted product result:', { id: createdP.id, imageUrl: createdP.imageUrl });
 
       if ((np.image_url && np.image_url.length > 0) && (createdP.imageUrl === null)) {
@@ -242,16 +244,16 @@ export const testProducts = async (req: any, res: any) => {
   try {
     console.log('🧪 Test endpoint called');
     console.log('📊 Database URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
-    
+
     // Test basic Prisma connection
     try {
       await db.$connect();
       console.log('✅ Prisma connected successfully');
-      
+
       // Test a simple query
       const productCount = await db.product.count();
       console.log('📦 Product count:', productCount);
-      
+
       res.json({
         success: true,
         message: 'Test successful',
@@ -287,7 +289,7 @@ export const getAdminProducts = async (req: any, res: any) => {
   try {
     console.log('🔍 getAdminProducts called');
     console.log('📊 Database URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
-    
+
     console.log('📋 Query params:', { limit, page, search });
 
     // Build where clause for search
@@ -342,10 +344,10 @@ export const getAdminProducts = async (req: any, res: any) => {
 
     } catch (dbError) {
       console.error('❌ Database error:', dbError);
-      
+
       // Return mock data as fallback when database is not available
       console.log('🔄 Returning mock data as fallback for admin...');
-      
+
       const mockProducts = [
         {
           id: "4e91859f-f569-435a-9066-436346b55cab",
@@ -373,7 +375,7 @@ export const getAdminProducts = async (req: any, res: any) => {
       let filteredProducts = mockProducts;
       if (search) {
         const searchTerm = (search).toLowerCase();
-        filteredProducts = mockProducts.filter(product => 
+        filteredProducts = mockProducts.filter(product =>
           product.name.toLowerCase().includes(searchTerm) ||
           product.brand.toLowerCase().includes(searchTerm)
         );
@@ -409,7 +411,7 @@ export const getAdminProducts = async (req: any, res: any) => {
       code: (error as any).code || 'Unknown code',
       stack: (error as any).stack || 'No stack trace'
     });
-    
+
     res.status(500).json({
       success: false,
       error: 'Failed to fetch products for admin',
@@ -427,7 +429,7 @@ export const getAllProducts = async (req: any, res: any) => {
   try {
     console.log('🔍 getAllProducts called');
     console.log('📊 Database URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
-    
+
     console.log('📋 Query params:', { limit, page, search });
 
     // Build where clause for search
@@ -480,10 +482,10 @@ export const getAllProducts = async (req: any, res: any) => {
       code: (error as any)?.code || 'Unknown code',
       stack: error instanceof Error ? error.stack : 'No stack trace'
     });
-    
+
     // Return mock data as fallback when database fails
     console.log('🔄 Returning mock data as fallback...');
-    
+
     const mockProducts = [
       {
         id: "4e91859f-f569-435a-9066-436346b55cab",
@@ -511,7 +513,7 @@ export const getAllProducts = async (req: any, res: any) => {
     let filteredProducts = mockProducts;
     if (search) {
       const searchTerm = (search).toLowerCase();
-      filteredProducts = mockProducts.filter(product => 
+      filteredProducts = mockProducts.filter(product =>
         product.name.toLowerCase().includes(searchTerm) ||
         product.brand.toLowerCase().includes(searchTerm)
       );
@@ -590,16 +592,18 @@ export const updateProduct = async (req: any, res: any) => {
       });
     }
 
+    // Prepare update data - only include fields that are provided
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (brand !== undefined) updateData.brand = brand;
+    if (image_url !== undefined) updateData.imageUrl = image_url;
+    if (quantity !== undefined) updateData.quantity = quantity !== null ? parseInt(quantity) : null;
+    if (rate !== undefined) updateData.rate = parseFloat(rate);
+
     // Update product (use camelCase field names)
     const updatedProduct = await db.product.update({
       where: { id },
-      data: {
-        name: name || existingProduct.name,
-        brand: brand || existingProduct.brand,
-        imageUrl: image_url !== undefined ? image_url : existingProduct.imageUrl,
-        quantity: quantity !== undefined ? quantity : existingProduct.quantity,
-        rate: rate !== undefined ? parseFloat(rate) : existingProduct.rate,
-      },
+      data: updateData,
     });
 
     res.json({
@@ -610,9 +614,11 @@ export const updateProduct = async (req: any, res: any) => {
 
   } catch (error) {
     console.error('Product update error:', error);
+    console.error('Error details:', error instanceof Error ? error.message : error);
     res.status(500).json({
       success: false,
       error: 'Failed to update product. Please try again.',
+      details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 };

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import {db} from '../db';
+import { db } from '../db';
+
 export const register = async (req: any, res: any) => {
   try {
     const userData = req.body;
@@ -148,7 +149,7 @@ export const login = async (req: any, res: any) => {
 
   } catch (error) {
     console.error('Login error:', error);
-    
+
     // Check if it's a database connection error
     if (error instanceof Error && error.message.includes('Can\'t reach database server')) {
       const response = {
@@ -157,7 +158,7 @@ export const login = async (req: any, res: any) => {
       };
       return res.status(500).json(response);
     }
-    
+
     const response = {
       success: false,
       error: 'Login failed. Please try again.'
@@ -208,6 +209,60 @@ export const getProfile = async (req: any, res: any) => {
 
   } catch (error) {
     console.error('Get profile error:', error);
+    const response = {
+      success: false,
+      error: 'Internal server error'
+    };
+    res.status(500).json(response);
+  }
+};
+
+export const updateProfile = async (req: any, res: any) => {
+  try {
+    const userId = (req as any).user.userId;
+    const userData = req.body;
+
+    // Update user
+    const user = await db.user.update({
+      where: { id: userId },
+      data: {
+        fullName: userData.fullName,
+        phone: userData.phone,
+        houseNumber: userData.houseNumber,
+        street: userData.street,
+        area: userData.area,
+        city: userData.city,
+        state: userData.state,
+        pinCode: userData.pinCode
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        houseNumber: true,
+        street: true,
+        area: true,
+        city: true,
+        state: true,
+        pinCode: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    const response = {
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        user: { ...user, role: 'USER' }
+      }
+    };
+
+    res.status(200).json(response);
+
+  } catch (error) {
+    console.error('Update profile error:', error);
     const response = {
       success: false,
       error: 'Internal server error'

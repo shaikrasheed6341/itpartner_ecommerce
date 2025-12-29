@@ -351,7 +351,7 @@ export const getAllOrders = async (req: any, res: any) => {
       id: order.id,
       orderNumber: order.orderNumber,
       status: order.status,
-      totalAmount: order.totalAmount,
+      totalAmount: parseFloat(order.totalAmount) || 0,
       currency: order.currency,
       paymentMethod: order.paymentMethod,
       razorpayOrderId: order.razorpayOrderId,
@@ -361,8 +361,8 @@ export const getAllOrders = async (req: any, res: any) => {
         id: item.id,
         productId: item.productId,
         quantity: item.quantity,
-        price: item.price,
-        itemTotal: item.quantity * item.price,
+        price: parseFloat(item.price) || 0,
+        itemTotal: item.quantity * (parseFloat(item.price) || 0),
         product: item.product
       })),
       user: order.user,
@@ -370,7 +370,7 @@ export const getAllOrders = async (req: any, res: any) => {
       summary: {
         totalItems: order.orderItems.reduce((sum: number, item: any) => sum + item.quantity, 0),
         itemCount: order.orderItems.length,
-        totalAmount: order.totalAmount
+        totalAmount: parseFloat(order.totalAmount) || 0
       }
     }));
 
