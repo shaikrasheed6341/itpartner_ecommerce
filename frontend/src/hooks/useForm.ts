@@ -1,17 +1,19 @@
-// Custom Hooks for Form Handling
-// This file provides reusable hooks for forms
-
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 // ============================================================================
 // FORM HOOK WITH VALIDATION
 // ============================================================================
 
-export function useForm(
-  initialData,
-  schema
+export function useForm<T>(
+  initialData: T,
+  _schema: any
 ) {
-  const [formState, setFormState] = useState({
+  const [formState, setFormState] = useState<{
+    data: T;
+    errors: Record<string, string | undefined>;
+    loading: boolean;
+    success: boolean;
+  }>({
     data: initialData,
     errors: {},
     loading: false,
@@ -19,7 +21,7 @@ export function useForm(
   });
 
   // Update form data
-  const updateField = useCallback((field, value) => {
+  const updateField = useCallback((field: keyof T, value: any) => {
     setFormState(prev => ({
       ...prev,
       data: {
@@ -34,7 +36,7 @@ export function useForm(
   }, []);
 
   // Update multiple fields
-  const updateFields = useCallback((updates) => {
+  const updateFields = useCallback((updates: Partial<T>) => {
     setFormState(prev => ({
       ...prev,
       data: {
@@ -52,23 +54,23 @@ export function useForm(
   }, []);
 
   // Validate single field
-  const validateField = useCallback((field) => {
+  const validateField = useCallback((_field: keyof T) => {
     // Simple validation - just return true for now
     return true;
   }, []);
 
   // Set loading state
-  const setLoading = useCallback((loading) => {
+  const setLoading = useCallback((loading: boolean) => {
     setFormState(prev => ({ ...prev, loading }));
   }, []);
 
   // Set success state
-  const setSuccess = useCallback((success) => {
+  const setSuccess = useCallback((success: boolean) => {
     setFormState(prev => ({ ...prev, success }));
   }, []);
 
   // Set errors
-  const setErrors = useCallback((errors) => {
+  const setErrors = useCallback((errors: Record<string, string | undefined>) => {
     setFormState(prev => ({ ...prev, errors }));
   }, []);
 
@@ -83,7 +85,7 @@ export function useForm(
   }, [initialData]);
 
   // Get field error
-  const getFieldError = useCallback((field) => {
+  const getFieldError = useCallback((field: string) => {
     return formState.errors[field];
   }, [formState.errors]);
 
@@ -109,15 +111,15 @@ export function useForm(
 // FORM SUBMISSION HOOK
 // ============================================================================
 
-export function useFormSubmit(
-  submitFn,
-  schema
+export function useFormSubmit<T, R>(
+  submitFn: (data: T) => Promise<R>,
+  _schema: any
 ) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const submit = useCallback(async (data) => {
+  const submit = useCallback(async (data: T) => {
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -154,18 +156,18 @@ export function useFormSubmit(
 // FIELD HOOK
 // ============================================================================
 
-export function useField(
-  initialValue,
-  validation
+export function useField<T>(
+  initialValue: T,
+  validation?: (value: T) => string | undefined
 ) {
-  const [value, setValue] = useState(initialValue);
-  const [error, setError] = useState(undefined);
+  const [value, setValue] = useState<T>(initialValue);
+  const [error, setError] = useState<string | undefined>(undefined);
   const [touched, setTouched] = useState(false);
 
-  const onChange = useCallback((newValue) => {
+  const onChange = useCallback((newValue: T) => {
     setValue(newValue);
     setTouched(true);
-    
+
     if (validation) {
       const validationError = validation(newValue);
       setError(validationError);
@@ -196,13 +198,3 @@ export function useField(
     isValid: !error,
   };
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
-
-export {
-  useForm,
-  useFormSubmit,
-  useField,
-};

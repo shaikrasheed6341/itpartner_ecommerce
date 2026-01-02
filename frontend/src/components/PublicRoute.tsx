@@ -1,5 +1,5 @@
-import { ReactNode, useEffect } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { ReactNode } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Loader2 } from 'lucide-react'
 
@@ -11,7 +11,6 @@ interface PublicRouteProps {
 
 export function PublicRoute({ children, adminOnly = false, userOnly = false }: PublicRouteProps) {
   const { isAuthenticated, isAdmin, loading } = useAuth()
-  const location = useLocation()
 
   // Show loading while checking auth
   if (loading) {

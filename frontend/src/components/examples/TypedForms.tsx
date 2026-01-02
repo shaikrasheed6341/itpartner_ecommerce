@@ -1,13 +1,18 @@
 // Login Component Example
 // This demonstrates how to use the form system
 
-import React from 'react';
+
 import { useForm } from '../../hooks/useForm';
 import { useAuth } from '../../contexts/AuthContext';
 
-export const LoginForm = ({ onSuccess, onError }) => {
+interface AuthFormProps {
+  onSuccess?: () => void;
+  onError?: (error: string) => void;
+}
+
+export const LoginForm = ({ onSuccess, onError }: AuthFormProps) => {
   const { login } = useAuth();
-  
+
   const {
     formState,
     updateField,
@@ -20,9 +25,9 @@ export const LoginForm = ({ onSuccess, onError }) => {
     null
   );
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validate()) {
       return;
     }
@@ -50,9 +55,8 @@ export const LoginForm = ({ onSuccess, onError }) => {
           type="email"
           value={formState.data.email}
           onChange={(e) => updateField('email', e.target.value)}
-          className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-            getFieldError('email') ? 'border-red-500' : ''
-          }`}
+          className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('email') ? 'border-red-500' : ''
+            }`}
           placeholder="Enter your email"
         />
         {getFieldError('email') && (
@@ -69,9 +73,8 @@ export const LoginForm = ({ onSuccess, onError }) => {
           type="password"
           value={formState.data.password}
           onChange={(e) => updateField('password', e.target.value)}
-          className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-            getFieldError('password') ? 'border-red-500' : ''
-          }`}
+          className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('password') ? 'border-red-500' : ''
+            }`}
           placeholder="Enter your password"
         />
         {getFieldError('password') && (
@@ -91,9 +94,9 @@ export const LoginForm = ({ onSuccess, onError }) => {
 };
 
 // Register Component Example
-export const RegisterForm = ({ onSuccess, onError }) => {
+export const RegisterForm = ({ onSuccess, onError }: AuthFormProps) => {
   const { register } = useAuth();
-  
+
   const {
     formState,
     updateField,
@@ -117,9 +120,9 @@ export const RegisterForm = ({ onSuccess, onError }) => {
     null
   );
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validate()) {
       return;
     }
@@ -148,9 +151,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="text"
             value={formState.data.fullName}
             onChange={(e) => updateField('fullName', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('fullName') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('fullName') ? 'border-red-500' : ''
+              }`}
             placeholder="Enter your full name"
           />
           {getFieldError('fullName') && (
@@ -167,9 +169,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="email"
             value={formState.data.email}
             onChange={(e) => updateField('email', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('email') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('email') ? 'border-red-500' : ''
+              }`}
             placeholder="Enter your email"
           />
           {getFieldError('email') && (
@@ -188,9 +189,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="password"
             value={formState.data.password}
             onChange={(e) => updateField('password', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('password') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('password') ? 'border-red-500' : ''
+              }`}
             placeholder="Enter your password"
           />
           {getFieldError('password') && (
@@ -207,9 +207,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="tel"
             value={formState.data.phone}
             onChange={(e) => updateField('phone', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('phone') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('phone') ? 'border-red-500' : ''
+              }`}
             placeholder="Enter your phone number"
           />
           {getFieldError('phone') && (
@@ -228,9 +227,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="text"
             value={formState.data.houseNumber}
             onChange={(e) => updateField('houseNumber', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('houseNumber') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('houseNumber') ? 'border-red-500' : ''
+              }`}
             placeholder="House number"
           />
           {getFieldError('houseNumber') && (
@@ -247,9 +245,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="text"
             value={formState.data.street}
             onChange={(e) => updateField('street', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('street') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('street') ? 'border-red-500' : ''
+              }`}
             placeholder="Street name"
           />
           {getFieldError('street') && (
@@ -266,9 +263,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="text"
             value={formState.data.area}
             onChange={(e) => updateField('area', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('area') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('area') ? 'border-red-500' : ''
+              }`}
             placeholder="Area name"
           />
           {getFieldError('area') && (
@@ -287,9 +283,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="text"
             value={formState.data.city}
             onChange={(e) => updateField('city', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('city') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('city') ? 'border-red-500' : ''
+              }`}
             placeholder="City name"
           />
           {getFieldError('city') && (
@@ -306,9 +301,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="text"
             value={formState.data.state}
             onChange={(e) => updateField('state', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('state') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('state') ? 'border-red-500' : ''
+              }`}
             placeholder="State name"
           />
           {getFieldError('state') && (
@@ -325,9 +319,8 @@ export const RegisterForm = ({ onSuccess, onError }) => {
             type="text"
             value={formState.data.pinCode}
             onChange={(e) => updateField('pinCode', e.target.value)}
-            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${
-              getFieldError('pinCode') ? 'border-red-500' : ''
-            }`}
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 ${getFieldError('pinCode') ? 'border-red-500' : ''
+              }`}
             placeholder="PIN code"
           />
           {getFieldError('pinCode') && (

@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
-import { useNavigate } from 'react-router-dom'
 import { Search, Users, UserCheck, UserX, Mail, Phone, MapPin, Calendar } from 'lucide-react'
 import { AdminLayout } from '@/components/AdminLayout'
 import { authApi } from '@/lib/api'
@@ -22,8 +20,6 @@ interface User {
 }
 
 export function AdminUsers() {
-  const { isAdmin, token, logout } = useAuth()
-  const navigate = useNavigate()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')

@@ -8,14 +8,10 @@ import {
   User, 
   Phone, 
   Mail, 
-  Calendar,
   ArrowLeft,
   CheckCircle,
-  Clock,
-  CreditCard,
   Loader2,
   AlertCircle,
-  Save,
   Send
 } from 'lucide-react'
 import { apiClient } from '@/lib/api'

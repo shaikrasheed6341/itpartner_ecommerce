@@ -1,5 +1,4 @@
-import React from 'react'
-import { CheckCircle, CreditCard, X, MapPin, Package, ShieldCheck } from 'lucide-react'
+import { CreditCard, X, MapPin, Package, ShieldCheck } from 'lucide-react'
 
 interface CheckoutConfirmationProps {
   isOpen: boolean

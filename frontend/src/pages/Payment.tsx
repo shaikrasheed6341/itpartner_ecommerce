@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/cart/Cartcontext'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { CreditCard, Shield, Truck, CheckCircle, Loader2 } from 'lucide-react'
+import { Shield, CheckCircle, Loader2 } from 'lucide-react'
 
 export function Payment() {
   const { user, isAuthenticated, token } = useAuth()
@@ -14,12 +14,11 @@ export function Payment() {
   const notificationTotal = location.state?.totalAmount
   const displayTotal = notificationTotal || cart.totalAmount
   const displayItems = location.state?.totalItems || cart.totalItems
-  const orderSummary = location.state?.orderSummary
 
   const [paymentMethod, setPaymentMethod] = useState('razorpay')
   const [isProcessing, setIsProcessing] = useState(false)
-  const [paymentSuccess, setPaymentSuccess] = useState(false)
-  const [orderId, setOrderId] = useState<string | null>(null)
+  const [paymentSuccess] = useState(false)
+  const [, setOrderId] = useState<string | null>(null)
 
   // Redirect if not authenticated
   useEffect(() => {

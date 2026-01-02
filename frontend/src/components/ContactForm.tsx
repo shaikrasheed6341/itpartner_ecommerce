@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { contactApi } from '@/lib/api'
-import { Send, Loader2, CheckCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react'
+import { Send, Loader2, CheckCircle, WifiOff } from 'lucide-react'
 
 interface ContactFormData {
   name: string

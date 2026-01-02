@@ -1,8 +1,6 @@
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const PaymentSuccess = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   
   // Dummy data for successful payment

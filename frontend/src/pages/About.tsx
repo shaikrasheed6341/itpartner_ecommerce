@@ -1,4 +1,4 @@
-import { CheckCircle, Users, Target, Award, Wifi, Camera, Laptop, Clock, MapPin, Phone, MessageSquare, ArrowRight, ShieldCheck, Heart } from 'lucide-react'
+import { CheckCircle, Users, Target, Wifi, Camera, Laptop, Clock, MapPin, Phone, ArrowRight, ShieldCheck, Heart } from 'lucide-react'
 import { ContactForm } from '@/components/ContactForm'
 import { Link } from 'react-router-dom'
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { Package, Clock, CheckCircle, Truck, XCircle, Eye, Calendar, CreditCard, User, MapPin, Phone, Mail, ShoppingBag, ArrowRight, ChevronDown, ChevronUp, Star, Shield, Zap } from 'lucide-react'
+import { Package, Clock, CheckCircle, Truck, XCircle, Calendar, CreditCard,  ShoppingBag, ChevronDown, ChevronUp, Shield, Zap } from 'lucide-react'
 import { apiClient, ordersApi } from '@/lib/api'
 
 interface OrderItem {
@@ -43,7 +43,7 @@ interface Order {
 }
 
 export function Orders() {
-  const { user, isAuthenticated, token } = useAuth()
+  const { isAuthenticated, token } = useAuth()
   const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -416,7 +416,6 @@ export function Orders() {
                           {/* Order Summary */}
                           <div>
                             <div className="flex items-center space-x-2 mb-4">
-                              <Star className="h-5 w-5 text-slate-600" />
                               <h4 className="text-lg font-semibold text-slate-900">Order Summary</h4>
                             </div>
                             <div className="bg-white/80 rounded-xl p-4 border border-slate-200/60 space-y-3">

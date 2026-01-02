@@ -1,9 +1,8 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X, Shield, ShoppingCart, User, LogOut, ChevronDown, Edit2, Save, Phone, MapPin, Mail, Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Menu, X, Shield, ShoppingCart, User, LogOut, ChevronDown, Phone, MapPin } from 'lucide-react'
 import { useCart } from '@/cart/Cartcontext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect, useRef } from 'react'
-import { authApi } from '@/lib/api'
 
 export function Header() {
   const { isAuthenticated, user, logout, isAdmin } = useAuth()
@@ -11,7 +10,6 @@ export function Header() {
   const [isLoginDropdownOpen, setIsLoginDropdownOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
 
   // Profile form state
   const [profileData, setProfileData] = useState<any>({
@@ -29,9 +27,6 @@ export function Header() {
   // Refs for closing dropdowns when clicking outside
   const dropdownRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
-
-  const navigate = useNavigate()
-
   // Initialize profile data when user is available or changes
   useEffect(() => {
     if (user) {
@@ -48,31 +43,6 @@ export function Header() {
       })
     }
   }, [user])
-
-  // Handle saving profile changes
-  const handleSaveProfile = async () => {
-    setIsSaving(true)
-    try {
-      const dataToSend = { ...profileData }
-      const response = await authApi.updateProfile(dataToSend)
-
-      if (response && (response.success || response.data)) {
-        setIsEditing(false)
-        // Reload to update global context if necessary, 
-        // essentially a simple way to sync changes across whole app
-        window.location.reload()
-      } else {
-        alert('Failed to update profile. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      alert('An error occurred while saving profile.')
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
-  
 
   // Safely get cart context
   let cart = { totalItems: 0 }

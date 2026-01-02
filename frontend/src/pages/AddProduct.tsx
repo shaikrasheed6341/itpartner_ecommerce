@@ -1,8 +1,8 @@
 import { AddProductForm } from '@/components/AddProductForm'
-import { useNavigate } from 'react-router-dom'
+
 
 export function AddProduct() {
-  const navigate = useNavigate()
+  // const navigate = useNavigate()
 
   const handleSuccess = () => {
     // Optionally redirect to products page after successful addition
@@ -23,8 +23,8 @@ export function AddProduct() {
           Add a new product to your inventory
         </p>
       </div>
-      
-      <AddProductForm 
+
+      <AddProductForm
         onSuccess={handleSuccess}
         onError={handleError}
       />
