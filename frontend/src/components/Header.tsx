@@ -72,10 +72,7 @@ export function Header() {
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setProfileData(prev => ({ ...prev, [name]: value }))
-  }
+  
 
   // Safely get cart context
   let cart = { totalItems: 0 }
