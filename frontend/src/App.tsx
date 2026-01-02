@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { ThemeProvider } from '@/components/theme-provider'
 import { CartProvider } from '@/cart/Cartcontext'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
+import { PublicRoute } from '@/components/PublicRoute'
 import { Header } from '@/components/Header'
 import { Footer } from '@/components/Footer'
 import { Home } from '@/pages/Home'
@@ -31,23 +33,31 @@ function AppContent() {
       {!isAdminRoute && <Header />}
       <main className="flex-1">
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/about" element={<About />} />
           <Route path="/products" element={<Products />} />
-          <Route path="/add-product" element={<AddProduct />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/products" element={<AdminProducts />} />
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/admin/orders" element={<AdminOrders />} />
-          <Route path="/admin/shipping/:orderId" element={<AdminShipping />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+
+          
+          {/* Public Auth Routes - redirect if already logged in */}
+          <Route path="/login" element={<PublicRoute userOnly><Login /></PublicRoute>} />
+          <Route path="/register" element={<PublicRoute userOnly><Register /></PublicRoute>} />
+          <Route path="/admin/login" element={<PublicRoute adminOnly><AdminLogin /></PublicRoute>} />
+          
+          {/* Protected User Routes */}
+          <Route path="/add-product" element={<ProtectedRoute><AddProduct /></ProtectedRoute>} />
+          <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+          <Route path="/payment" element={<ProtectedRoute><Payment /></ProtectedRoute>} />
+          <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+          <Route path="/payment-success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+          
+          {/* Protected Admin Routes */}
+          <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/products" element={<ProtectedRoute requireAdmin><AdminProducts /></ProtectedRoute>} />
+          <Route path="/admin/orders" element={<ProtectedRoute requireAdmin><AdminOrders /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute requireAdmin><AdminUsers /></ProtectedRoute>} />
+          <Route path="/admin/shipping/:orderId" element={<ProtectedRoute requireAdmin><AdminShipping /></ProtectedRoute>} />
         </Routes>
       </main>
       {!isAdminRoute && <Footer />}

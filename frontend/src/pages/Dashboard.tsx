@@ -1,6 +1,7 @@
 import { Wifi, Camera, Laptop, Server, Shield, Phone, ArrowRight } from 'lucide-react'
-
+import { useNavigate } from 'react-router-dom'
 export function Dashboard() {
+  const navigate = useNavigate()
   return (
     <div className="flex-1">
 
@@ -199,7 +200,7 @@ export function Dashboard() {
       </section>
 
       {/* Call to Action */}
-      <section className="relative py-20 md:py-32 bg-gradient-to-br from-violet-600 via-purple-600 to-violet-800 text-white overflow-hidden">
+      <section className="relative py-20 md:py-32 bg-gradient-to-br from-zinc-800 via-violet-600 to-zinc-800 text-white overflow-hidden">
         {/* Animated background pattern */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6bTAtNHYyaDJ2LTJoLTJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-40"></div>
 
@@ -209,7 +210,7 @@ export function Dashboard() {
 
         <div className="container relative z-10 px-4 md:px-6 text-center">
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-violet-100 to-white bg-clip-text text-transparent drop-shadow-2xl">
+            <h2 className="text-4xl md:text-5xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-white via-violet-100 to-white bg-clip-text text-transparent drop-shadow-2xl">
               Need a Custom Solution?
             </h2>
             <p className="text-lg md:text-xl text-white/95 mb-12 max-w-3xl mx-auto leading-relaxed">
@@ -218,7 +219,7 @@ export function Dashboard() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
-              <button className="group inline-flex h-16 items-center justify-center rounded-2xl bg-white px-12 text-lg font-bold text-violet-700 shadow-2xl shadow-violet-900/40 transition-all hover:bg-violet-50 hover:scale-110 hover:shadow-2xl hover:shadow-violet-900/60 active:scale-95">
+              <button onClick={() => navigate('/about')} className="group inline-flex h-16 items-center justify-center rounded-2xl bg-white px-12 text-lg font-bold text-violet-700 shadow-2xl shadow-violet-900/40 transition-all hover:bg-violet-50 hover:scale-110 hover:shadow-2xl hover:shadow-violet-900/60 active:scale-95">
                 Get Free Quote
                 <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
               </button>

@@ -151,14 +151,14 @@ const ContinueShoppingModal = ({ isOpen, onClose, onGoToCart }: { isOpen: boolea
           <div className="flex gap-3 w-full flex-row">
             <button
               onClick={onClose}
-              className="flex-1 bg-white border border-zinc-200 text-zinc-700 py-3 rounded-xl font-semibold hover:bg-zinc-50 hover:border-zinc-300 transition-all focus:ring-4 focus:ring-zinc-100"
+              className="flex-1 bg-gradient-to-br from-zinc-900 via-violet-800 to-violet-900  text-white py-3 rounded-xl font-semibold hover:bg-zinc-50 hover:border-zinc-300 transition-all focus:ring-4 focus:ring-zinc-100"
             >
               Continue Shopping
             </button>
 
             <button
               onClick={onGoToCart}
-              className="flex-1 bg-gradient-to-r from-emerald-600 to-green-600 text-white py-3 rounded-xl font-semibold hover:from-emerald-700 hover:to-green-700 transition-all shadow-lg shadow-emerald-500/20 focus:ring-4 focus:ring-emerald-100 flex items-center justify-center gap-2"
+              className="flex-1 bg-white text-violet-800 py-3 rounded-xl border border-zinc-200 font-semibold hover:from-zinc-700 hover:to-zinc-700 transition-all shadow-lg shadow-zinc-500/20 focus:ring-4 focus:ring-zinc-100 flex items-center justify-center gap-2"
             >
               View Cart
               <ShoppingCart className="h-4 w-4" />

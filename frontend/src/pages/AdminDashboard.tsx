@@ -219,7 +219,7 @@ export function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCard
             title="Total Revenue"
-            value="₹48,290"
+            value="₹{totalRevenue}"
             trend="+12.5%"
             isPositive={true}
             icon={<DollarSign className="h-6 w-6 text-white" />}

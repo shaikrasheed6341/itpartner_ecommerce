@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import { Shield, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Shield, Eye, EyeOff, ArrowLeft, Loader2 } from 'lucide-react'
 
 export function AdminLogin() {
-  const { adminLogin } = useAuth()
+  const { adminLogin, isAuthenticated, isAdmin, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     email: '',
@@ -17,6 +17,32 @@ export function AdminLogin() {
   const [error, setError] = useState('')
   const [otpRequired, setOtpRequired] = useState(false)
   const [generatedOTP, setGeneratedOTP] = useState('')
+
+  // Redirect if already authenticated as admin
+  useEffect(() => {
+    if (authLoading) return // Wait for auth to load
+    
+    if (isAuthenticated && isAdmin) {
+      navigate('/admin', { replace: true })
+    } else if (isAuthenticated && !isAdmin) {
+      // If regular user tries to access admin login, redirect to home
+      navigate('/', { replace: true })
+    }
+  }, [isAuthenticated, isAdmin, authLoading, navigate])
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    )
+  }
+
+  // Don't render login form if already authenticated (will redirect)
+  if (isAuthenticated && isAdmin) {
+    return null
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

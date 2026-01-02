@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { Package, Clock, CheckCircle, Truck, XCircle, Eye, Calendar, CreditCard, User, MapPin, Phone, Mail, ShoppingBag, ArrowRight, ChevronDown, ChevronUp, Star, Shield, Zap } from 'lucide-react'
-import { apiClient } from '@/lib/api'
+import { apiClient, ordersApi } from '@/lib/api'
 
 interface OrderItem {
   id: string
@@ -67,19 +67,45 @@ export function Orders() {
   const fetchUserOrders = async () => {
     try {
       setLoading(true)
-      if (token) apiClient.setAuthToken(token)
-      else apiClient.removeAuthToken()
+      setError(null)
+      
+      // Ensure user is authenticated
+      if (!token || !isAuthenticated) {
+        setError('Please login to view your orders.')
+        return
+      }
+      
+      // Set auth token
+      apiClient.setAuthToken(token)
 
-      const response = await apiClient.get('/api/v1/orders/')
+      const response = await ordersApi.getUserOrders()
 
       if (response?.success) {
-        setOrders(response.data.orders)
+        setOrders(response.data?.orders || response.data || [])
       } else if (Array.isArray(response?.data)) {
         setOrders(response.data)
+      } else if (Array.isArray(response)) {
+        setOrders(response)
+      } else {
+        setOrders([])
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching orders:', error)
-      setError('Failed to load orders. Please try again.')
+      
+      // Provide more specific error messages
+      if (error?.message?.includes('Cannot connect to backend server') || 
+          error?.message?.includes('ERR_CONNECTION_REFUSED') ||
+          error?.message?.includes('Network Error')) {
+        setError('Backend server is not running. Please start the server with: cd backend && npm run dev')
+      } else if (error?.message?.includes('401') || error?.message?.includes('Authentication')) {
+        setError('Authentication failed. Please login again.')
+        // Optionally redirect to login
+        setTimeout(() => navigate('/login'), 2000)
+      } else if (error?.message?.includes('403') || error?.message?.includes('Forbidden')) {
+        setError('You do not have permission to view orders.')
+      } else {
+        setError(error?.message || 'Failed to load orders. Please try again.')
+      }
     } finally {
       setLoading(false)
     }
@@ -168,9 +194,15 @@ export function Orders() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto p-6">
           <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+          <button
+            onClick={fetchUserOrders}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
           <button
             onClick={fetchUserOrders}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
@@ -266,7 +298,7 @@ export function Orders() {
                     <div className="flex items-center space-x-6">
                       <div className="text-right">
                         <p className="text-xl font-bold text-slate-900">
-                          ₹{order.totalAmount.toFixed(2)}
+                          ₹{Number(order.totalAmount).toFixed(2)}
                         </p>
                         <div className="flex items-center space-x-1 text-sm text-slate-500">
                           <Package className="h-4 w-4" />
@@ -365,13 +397,13 @@ export function Orders() {
                                     </div>
                                     <div className="flex items-center space-x-1 text-sm text-slate-500">
                                       <CreditCard className="h-3 w-3" />
-                                      <span>₹{item.price.toFixed(2)} each</span>
+                                      <span>₹{Number(item.price).toFixed(2)} each</span>
                                     </div>
                                   </div>
                                 </div>
                                 <div className="text-right">
                                   <p className="text-lg font-semibold text-slate-900">
-                                    ₹{item.itemTotal.toFixed(2)}
+                                    ₹{Number(item.itemTotal).toFixed(2)}
                                   </p>
                                 </div>
                               </div>

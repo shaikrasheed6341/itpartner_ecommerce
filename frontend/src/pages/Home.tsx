@@ -102,7 +102,6 @@ export function Home() {
           </div>
         </div>
       </section>
-
       {/* Why Choose Us */}
       <section className="w-full py-4 md:py-24 lg:py-4     ">
         <div className="container px-4 md:px-6">
