@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { contactApi } from '@/lib/api'
+
 import { Send, Loader2, CheckCircle, WifiOff } from 'lucide-react'
 
 interface ContactFormData {
@@ -40,10 +40,35 @@ export function ContactForm({ className = '' }: ContactFormProps) {
     setSubmitStatus('idle')
     setErrorMessage('')
 
-    try {
-      const result = await contactApi.submit(formData)
+    // Use environment variable or fallback to the provided key
+    const accessKey = import.meta.env.VITE_STATIC_FORMS_ACCESS_KEY
 
-      if (result?.success) {
+
+
+    if (!accessKey) {
+      setSubmitStatus('error')
+      setErrorMessage('Configuration Error: Access Key is missing.')
+      setIsSubmitting(false)
+      return
+    }
+
+    try {
+      const response = await fetch('https://api.staticforms.dev/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessKey,
+          ...formData,
+          subject: 'New Contact Form Submission - IT Partner',
+          replyTo: formData.email, // Explicitly set the Reply-To to the sender's email
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
         setSubmitStatus('success')
         setFormData({
           name: '',
@@ -54,7 +79,7 @@ export function ContactForm({ className = '' }: ContactFormProps) {
         })
       } else {
         setSubmitStatus('error')
-        setErrorMessage(result?.error || 'Failed to submit form. Please try again.')
+        setErrorMessage(result.message || 'Failed to submit form. Please try again.')
       }
     } catch (error) {
       setSubmitStatus('error')
@@ -67,7 +92,7 @@ export function ContactForm({ className = '' }: ContactFormProps) {
   return (
     <div className={`bg-card border rounded-xl p-6 ${className}`}>
       <h3 className="text-xl font-semibold mb-4">Get In Touch</h3>
-      
+
       {submitStatus === 'success' && (
         <div className="mb-4 p-3 bg-green-100 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center space-x-2">
           <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />

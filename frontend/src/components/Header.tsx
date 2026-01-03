@@ -111,11 +111,11 @@ export function Header() {
             <Link to="/" className="transition-colors hover:text-violet-800">Home</Link>
             <Link to="/dashboard" className="transition-colors hover:text-violet-800">Services</Link>
             <Link to="/about" className="transition-colors hover:text-violet-800">About</Link>
-            <Link to="/products" className="transition-colors hover:text-violet-800">Buy</Link>
-            <Link to="/orders" className="transition-colors hover:text-violet-800">Orders</Link>
+            {/* <Link to="/products" className="transition-colors hover:text-violet-800">Buy</Link> */}
+            {/* <Link to="/orders" className="transition-colors hover:text-violet-800">Orders</Link> */}
           </nav>
 
-          <Link
+          {/* <Link
             to="/cart"
             className="relative inline-flex items-center justify-center rounded-md text-sm font-medium hover:text-violet-800 transition-colors h-10 w-10"
           >
@@ -125,7 +125,7 @@ export function Header() {
                 {cart.totalItems > 99 ? '99+' : cart.totalItems}
               </span>
             )}
-          </Link>
+          </Link> */}
         </div>
 
         {/* Right: User Actions */}
@@ -281,12 +281,12 @@ export function Header() {
             <Link to="/" className="block py-2 text-sm font-medium text-zinc-600" onClick={() => setIsMenuOpen(false)}>Home</Link>
             <Link to="/about" className="block py-2 text-sm font-medium text-zinc-600" onClick={() => setIsMenuOpen(false)}>About</Link>
             <Link to="/dashboard" className="block py-2 text-sm font-medium text-zinc-600" onClick={() => setIsMenuOpen(false)}>Services</Link>
-            <Link to="/products" className="block py-2 text-sm font-medium text-zinc-600" onClick={() => setIsMenuOpen(false)}>Buy</Link>
-            <Link to="/orders" className="block py-2 text-sm font-medium text-zinc-600" onClick={() => setIsMenuOpen(false)}>Orders</Link>
+            {/* <Link to="/products" className="block py-2 text-sm font-medium text-zinc-600" onClick={() => setIsMenuOpen(false)}>Buy</Link> */}
+            {/* <Link to="/orders" className="block py-2 text-sm font-medium text-zinc-600" onClick={() => setIsMenuOpen(false)}>Orders</Link> */}
 
-            <Link to="/cart" className="flex items-center gap-2 py-2 text-sm font-medium text-zinc-600" onClick={() => setIsMenuOpen(false)}>
+            {/* <Link to="/cart" className="flex items-center gap-2 py-2 text-sm font-medium text-zinc-600" onClick={() => setIsMenuOpen(false)}>
               <ShoppingCart className="h-4 w-4" /> Cart ({cart.totalItems})
-            </Link>
+            </Link> */}
 
             {isAuthenticated ? (
               <>
