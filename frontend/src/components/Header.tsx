@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Menu, X, Shield, ShoppingCart, User, LogOut, ChevronDown, Phone, MapPin } from 'lucide-react'
-import { useCart } from '@/cart/Cartcontext'
+import { Menu, X, Shield, User, LogOut, ChevronDown, Phone, MapPin } from 'lucide-react'
+// import { useCart } from '@/cart/Cartcontext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect, useRef } from 'react'
 
@@ -44,14 +44,14 @@ export function Header() {
     }
   }, [user])
 
-  // Safely get cart context
-  let cart = { totalItems: 0 }
-  try {
-    const cartContext = useCart()
-    cart = cartContext.cart
-  } catch (error) {
-    console.warn('Cart context not available:', error)
-  }
+  // // Safely get cart context
+  // let cart = { totalItems: 0 }
+  // try {
+  //   const cartContext = useCart()
+  //   cart = cartContext.cart
+  // } catch (error) {
+  //   console.warn('Cart context not available:', error)
+  // }
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
