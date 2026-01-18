@@ -1,7 +1,7 @@
-import { Router } from 'express';
-import { 
-  createProduct, 
-  getAllProducts, 
+import { Hono } from 'hono';
+import {
+  createProduct,
+  getAllProducts,
   getProductById,
   updateProduct,
   deleteProduct,
@@ -10,36 +10,21 @@ import {
   importProducts
 } from '../controllers/productController';
 import { adminAuth } from '../middleware/adminAuth';
-import multer from 'multer';
 
-const router = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
+const app = new Hono();
 
 // Test route
-router.get('/test', testProducts);
+app.get('/test', testProducts);
 
 // Public routes
-// GET /api/products - Get all products
-router.get('/', getAllProducts);
-
-// GET /api/products/:id - Get product by ID
-router.get('/:id', getProductById);
+app.get('/', getAllProducts);
+app.get('/:id', getProductById);
 
 // Admin only routes
-// POST /api/products - Create a new product
-router.post('/', adminAuth, createProduct);
+app.post('/', adminAuth, createProduct);
+app.post('/bulk', adminAuth, bulkCreateProducts);
+app.post('/import', adminAuth, importProducts); // File handling logic is now inside controller
+app.put('/:id', adminAuth, updateProduct);
+app.delete('/:id', adminAuth, deleteProduct);
 
-// POST /api/products/bulk - Bulk create products (admin only). Accepts { products: [...] } or { count: n }
-router.post('/bulk', adminAuth, bulkCreateProducts);
-
-// POST /api/products/import - Import products from CSV or JSON file (admin only)
-// Use multipart/form-data with key 'file' (CSV with headers: name,brand,image_url,quantity,rate) or a JSON file/array
-router.post('/import', adminAuth, upload.single('file'), importProducts);
-
-// PUT /api/products/:id - Update product
-router.put('/:id', adminAuth, updateProduct);
-
-// DELETE /api/products/:id - Delete product
-router.delete('/:id', adminAuth, deleteProduct);
-
-export default router;
+export default app;

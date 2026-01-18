@@ -1,45 +1,35 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import dotenv from 'dotenv';
-// import { visitorTrackingMiddleware } from './middleware/visitorTracking';
+import { serve } from '@hono/node-server';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
 import routes from './routes';
 
-// Load environment variables
-dotenv.config();
+const app = new Hono();
 
-const app = express(); 
-const PORT = process.env.PORT || 5000;
-
-// Middleware
-app.use(helmet());
-app.use(cors({
-  origin: ['process.env.FRONTEND_URL'],
-  credentials: true
+app.use('*', logger());
+app.use('*', cors({
+  origin: '*', // Allow all origins for now, restrict in production
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(morgan('morgan'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Visitor tracking middleware (apply to all routes)
-// app.use(visitorTrackingMiddleware);
-
-// Basic route
-app.get('/', (req, res) => {
-  res.json({ message: 'IT Partner Backend API is running!' });
+app.get('/', (c) => {
+  return c.json({ message: 'IT Partner Backend API is running!' });
 });
 
-// Health check route
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+app.get('/health', (c) => {
+  return c.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// API routes
-app.use('/api/v1', routes);
+// Mount routes
+app.route('/api/v1', routes);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`📱 Environment: ${process.env.NODE_ENV}`);
+const port = 5000;
+console.log(`Server is running on port ${port}`);
+
+serve({
+  fetch: app.fetch,
+  port
 });
+
+export default app;

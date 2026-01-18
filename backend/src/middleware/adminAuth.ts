@@ -1,35 +1,46 @@
-import { NextFunction } from 'express';
+import { Context, Next } from 'hono';
 import jwt from 'jsonwebtoken';
-import {db} from '../db';
+import { db } from '../db';
 
-export const adminAuth = async (req: any, res: any, next: NextFunction) => {
+declare module 'hono' {
+  interface ContextVariableMap {
+    admin: {
+      id: string;
+      email: string;
+      fullName: string;
+      role: string;
+    }
+  }
+}
+
+export const adminAuth = async (c: Context, next: Next) => {
+  const authHeader = c.req.header('Authorization');
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({
+      success: false,
+      message: 'Access denied. No token provided or invalid format.'
+    }, 401);
+  }
+
+  const token = authHeader.substring(7);
+
+  if (!token) {
+    return c.json({
+      success: false,
+      message: 'Access denied. No token provided.'
+    }, 401);
+  }
+
   try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'Access denied. No token provided or invalid format.'
-      });
-    }
-
-    const token = authHeader.substring(7);
-    
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Access denied. No token provided.'
-      });
-    }
-
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
-    
+
     if (!decoded.adminId) {
-      return res.status(401).json({
+      return c.json({
         success: false,
         message: 'Access denied. Invalid token.'
-      });
+      }, 401);
     }
 
     // Check if admin exists in database
@@ -44,47 +55,46 @@ export const adminAuth = async (req: any, res: any, next: NextFunction) => {
     });
 
     if (!admin) {
-      return res.status(401).json({
+      return c.json({
         success: false,
         message: 'Access denied. Admin not found.'
-      });
+      }, 401);
     }
 
-    // Add admin info to request object
-    req.admin = {
+    // Add admin info to context
+    c.set('admin', {
       id: admin.id,
       email: admin.email,
       fullName: admin.fullName,
       role: 'ADMIN'
-    };
+    });
 
-    next();
+    await next();
 
   } catch (error) {
     console.error('Admin auth error:', error);
-    
+
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({
+      return c.json({
         success: false,
         message: 'Access denied. Invalid token.'
-      });
+      }, 401);
     }
 
-    return res.status(500).json({
+    return c.json({
       success: false,
       message: 'Internal server error during authentication.'
-    });
+    }, 500);
   }
 };
 
-export const requireAdminAuth = (req: any, res: any, next: NextFunction) => {
-  if (!req.admin) {
-    return res.status(401).json({
+export const requireAdminAuth = (c: Context, next: Next) => {
+  const admin = c.get('admin');
+  if (!admin) {
+    return c.json({
       success: false,
       message: 'Admin authentication required.'
-    });
+    }, 401);
   }
-  next();
+  return next();
 };
-
-

@@ -1,4 +1,6 @@
+import { Context } from 'hono';
 import { db } from "../db";
+
 export const calculateCartTotals = async (userId: string) => {
   try {
     console.log('calculateCartTotals called', { userId });
@@ -203,50 +205,53 @@ export const clearCart = async (userId: string) => {
   }
 };
 
-// Express controller functions
-export const addToCartController = async (req: any, res: any) => {
+// Hono controller functions
+export const addToCartController = async (c: Context) => {
   try {
-    const userId = req.user.userId;
-    const { productId, quantity = 1 } = req.body;
+    const user = c.get('user');
+    const userId = user.userId;
+    const { productId, quantity = 1 } = await c.req.json();
 
     const result = await addToCart(userId, productId, quantity);
-    
-    res.json({
+
+    return c.json({
       success: true,
       message: 'Item added to cart successfully',
       data: result
     });
   } catch (error) {
     console.error('Error in addToCartController:', error);
-    res.status(500).json({
+    return c.json({
       success: false,
       error: (error as any).message || 'Failed to add item to cart'
-    });
+    }, 500);
   }
 };
 
-export const getCartController = async (req: any, res: any) => {
+export const getCartController = async (c: Context) => {
   try {
-    const userId = req.user.userId;
+    const user = c.get('user');
+    const userId = user.userId;
     const result = await calculateCartTotals(userId);
-    
-    res.json({
+
+    return c.json({
       success: true,
       data: result
     });
   } catch (error) {
     console.error('Error in getCartController:', error);
-    res.status(500).json({
+    return c.json({
       success: false,
       error: (error as any).message || 'Failed to get cart'
-    });
+    }, 500);
   }
 };
 
-export const removeFromCartController = async (req: any, res: any) => {
+export const removeFromCartController = async (c: Context) => {
   try {
-    const userId = req.user.userId;
-    const { productId } = req.params;
+    const user = c.get('user');
+    const userId = user.userId;
+    const productId = c.req.param('productId');
 
     // Find the cart item by productId
     const cartItem = await db.cart.findFirst({
@@ -257,33 +262,34 @@ export const removeFromCartController = async (req: any, res: any) => {
     });
 
     if (!cartItem) {
-      return res.status(404).json({
+      return c.json({
         success: false,
         error: 'Cart item not found'
-      });
+      }, 404);
     }
 
     const result = await removeFromCart(userId, cartItem.id);
-    
-    res.json({
+
+    return c.json({
       success: true,
       message: 'Item removed from cart successfully',
       data: result
     });
   } catch (error) {
     console.error('Error in removeFromCartController:', error);
-    res.status(500).json({
+    return c.json({
       success: false,
       error: (error as any).message || 'Failed to remove item from cart'
-    });
+    }, 500);
   }
 };
 
-export const updateCartItemQuantityController = async (req: any, res: any) => {
+export const updateCartItemQuantityController = async (c: Context) => {
   try {
-    const userId = req.user.userId;
-    const { productId } = req.params;
-    const { quantity } = req.body;
+    const user = c.get('user');
+    const userId = user.userId;
+    const productId = c.req.param('productId');
+    const { quantity } = await c.req.json();
 
     // Find the cart item by productId
     const cartItem = await db.cart.findFirst({
@@ -294,64 +300,66 @@ export const updateCartItemQuantityController = async (req: any, res: any) => {
     });
 
     if (!cartItem) {
-      return res.status(404).json({
+      return c.json({
         success: false,
         error: 'Cart item not found'
-      });
+      }, 404);
     }
 
     const result = await updateCartQuantity(userId, cartItem.id, quantity);
-    
-    res.json({
+
+    return c.json({
       success: true,
       message: 'Cart item quantity updated successfully',
       data: result
     });
   } catch (error) {
     console.error('Error in updateCartItemQuantityController:', error);
-    res.status(500).json({
+    return c.json({
       success: false,
       error: (error as any).message || 'Failed to update cart item quantity'
-    });
+    }, 500);
   }
 };
 
-export const clearCartController = async (req: any, res: any) => {
+export const clearCartController = async (c: Context) => {
   try {
-    const userId = req.user.userId;
+    const user = c.get('user');
+    const userId = user.userId;
     const result = await clearCart(userId);
-    
-    res.json({
+
+    return c.json({
       success: true,
       message: 'Cart cleared successfully',
       data: result
     });
   } catch (error) {
     console.error('Error in clearCartController:', error);
-    res.status(500).json({
+    return c.json({
       success: false,
       error: (error as any).message || 'Failed to clear cart'
-    });
+    }, 500);
   }
 };
 
-export const addMultipleToCartController = async (req: any, res: any) => {
+export const addMultipleToCartController = async (c: Context) => {
   try {
-    const userId = req.user?.userId;
-    const { items } = req.body;
+    const user = c.get('user');
+    const userId = user?.userId;
+    const { items } = await c.req.json();
 
     console.log('addMultipleToCartController called', { userId, items });
 
     if (!userId) {
       console.error('addMultipleToCartController: missing userId');
-      return res.status(401).json({ success: false, error: 'Authentication required' });
+      return c.json({ success: false, error: 'Authentication required' }, 401);
     }
 
     if (!items || !Array.isArray(items)) {
-      return res.status(400).json({
+      return c.json({
         success: false,
         error: 'Items array is required'
-      });
+      }, 400);
     }
 
     const added: any[] = [];
@@ -371,8 +379,8 @@ export const addMultipleToCartController = async (req: any, res: any) => {
     }
 
     const finalResult = await calculateCartTotals(userId);
-    
-    res.json({
+
+    return c.json({
       success: errors.length === 0,
       message: errors.length === 0 ? 'Multiple items added to cart successfully' : 'Some items failed to add to cart',
       data: {
@@ -383,17 +391,18 @@ export const addMultipleToCartController = async (req: any, res: any) => {
     });
   } catch (error) {
     console.error('Error in addMultipleToCartController:', error);
-    res.status(500).json({
+    return c.json({
       success: false,
       error: (error as any).message || 'Failed to add multiple items to cart'
-    });
+    }, 500);
   }
 };
 
-export const processCheckoutController = async (req: any, res: any) => {
+export const processCheckoutController = async (c: Context) => {
   try {
-    const userId = req.user.userId;
-    const { totalAmount, totalItems } = req.body;
+    const user = c.get('user');
+    const userId = user.userId;
+    const { totalAmount, totalItems } = await c.req.json();
 
     // Get current cart items
     const cartItems = await db.cart.findMany({
@@ -412,10 +421,10 @@ export const processCheckoutController = async (req: any, res: any) => {
     });
 
     if (cartItems.length === 0) {
-      return res.status(400).json({
+      return c.json({
         success: false,
         error: 'Cart is empty'
-      });
+      }, 400);
     }
 
     // Create order
@@ -468,13 +477,11 @@ export const processCheckoutController = async (req: any, res: any) => {
         price: item.price,
         product: item.product
       })),
-
-
       status: order.status,
       createdAt: order.createdAt
     };
 
-    res.json({
+    return c.json({
       success: true,
       message: 'Order created successfully',
       data: {
@@ -483,11 +490,9 @@ export const processCheckoutController = async (req: any, res: any) => {
     });
   } catch (error) {
     console.error('Error in processCheckoutController:', error);
-    res.status(500).json({
+    return c.json({
       success: false,
       error: (error as any).message || 'Failed to process checkout'
-    });
+    }, 500);
   }
 };
-
-

@@ -1,4 +1,4 @@
-// import { NextFunction } from 'express';
+
 // import { prisma } from '../lib/prisma';
 
 // export const visitorTrackingMiddleware = async (req: any, res: any, next: NextFunction) => {

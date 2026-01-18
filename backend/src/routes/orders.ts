@@ -1,22 +1,25 @@
-import { Router } from 'express';
+import { Hono } from 'hono';
 import { createOrder, createRazorpayOrder, verifyPayment, getOrderDetails, getUserOrders } from '../controllers/orders/order';
 import { authenticateToken } from '../middleware/auth';
 
-const router = Router();
+const app = new Hono();
+
+// All order routes require authentication
+app.use('*', authenticateToken);
 
 // Create order with cart total amount and order items
-router.post('/create', authenticateToken, createOrder);
+app.post('/create', createOrder);
 
 // Create Razorpay order for payment
-router.post('/razorpay/create', authenticateToken, createRazorpayOrder);
+app.post('/razorpay/create', createRazorpayOrder);
 
 // Verify payment
-router.post('/razorpay/verify', authenticateToken, verifyPayment);
+app.post('/razorpay/verify', verifyPayment);
 
-// Get all orders for a user (must come before /:orderId to avoid route conflicts)
-router.get('/', authenticateToken, getUserOrders);
+// Get all orders for a user (must come before /:orderId)
+app.get('/', getUserOrders);
 
-// Get order details with order items
-router.get('/:orderId', authenticateToken, getOrderDetails);
+// Get order details
+app.get('/:orderId', getOrderDetails);
 
-export default router;
+export default app;

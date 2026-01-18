@@ -133,17 +133,17 @@ dbWithModels.order = {
       q = q.orderBy(desc(orders.createdAt)); // Default to desc
     }
     const rows = await q;
-    
+
     // Handle includes
     if (include && rows.length > 0) {
       const allOrderItems = await db.select().from(orderItems);
       const allProducts = include.orderItems ? await db.select().from(products) : [];
       const allUsers = include.user ? await db.select().from(users) : [];
       const allPayments = include.payments ? await db.select().from(payments) : [];
-      
+
       return rows.map((order: any) => {
         const result: any = { ...order };
-        
+
         // Include orderItems with products
         if (include.orderItems) {
           const items = allOrderItems.filter((item: any) => item.orderId === order.id);
@@ -171,7 +171,7 @@ dbWithModels.order = {
             return itemResult;
           });
         }
-        
+
         // Include user
         if (include.user) {
           const user = allUsers.find((u: any) => u.id === order.userId);
@@ -191,7 +191,7 @@ dbWithModels.order = {
             result.user = null;
           }
         }
-        
+
         // Include payments
         if (include.payments) {
           const orderPayments = allPayments.filter((p: any) => p.orderId === order.id);
@@ -209,11 +209,11 @@ dbWithModels.order = {
             result.payments = orderPayments;
           }
         }
-        
+
         return result;
       });
     }
-    
+
     return rows;
   },
   findFirst: async ({ where, include }: any) => {
@@ -223,18 +223,18 @@ dbWithModels.order = {
     if (where?.razorpayOrderId) q = q.where(eq(orders.razorpayOrderId, where.razorpayOrderId));
     const rows = await q.limit(1);
     const order = rows[0] ?? null;
-    
+
     if (!order) return null;
-    
+
     // Handle includes
     if (include) {
       const result: any = { ...order };
-      
+
       // Include orderItems with products
       if (include.orderItems) {
         const items = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id));
         const allProducts = include.orderItems.include?.product ? await db.select().from(products) : [];
-        
+
         result.orderItems = items.map((item: any) => {
           const itemResult: any = { ...item };
           if (include.orderItems.include?.product) {
@@ -258,7 +258,7 @@ dbWithModels.order = {
           return itemResult;
         });
       }
-      
+
       // Include user
       if (include.user) {
         const userRows = await db.select().from(users).where(eq(users.id, order.userId)).limit(1);
@@ -279,7 +279,7 @@ dbWithModels.order = {
           result.user = null;
         }
       }
-      
+
       // Include payments
       if (include.payments) {
         const orderPayments = await db.select().from(payments).where(eq(payments.orderId, order.id));
@@ -297,10 +297,10 @@ dbWithModels.order = {
           result.payments = orderPayments;
         }
       }
-      
+
       return result;
     }
-    
+
     return order;
   },
   create: async ({ data, include }: any) => {
@@ -523,7 +523,7 @@ dbWithModels.product = {
     if (!where?.id) {
       throw new Error('Product ID is required for update');
     }
-    
+
     // Convert snake_case to camelCase if needed
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
@@ -532,15 +532,15 @@ dbWithModels.product = {
     if (data.image_url !== undefined) updateData.imageUrl = data.image_url;
     if (data.quantity !== undefined) updateData.quantity = data.quantity;
     if (data.rate !== undefined) updateData.rate = data.rate;
-    
+
     // Add updatedAt timestamp
     updateData.updatedAt = new Date();
-    
+
     const result = await db.update(products)
       .set(updateData)
       .where(eq(products.id, where.id))
       .returning();
-    
+
     return result[0] ?? null;
   }
 };

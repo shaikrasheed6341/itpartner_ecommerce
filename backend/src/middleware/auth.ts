@@ -1,21 +1,31 @@
-import { NextFunction } from 'express';
+import { Context, Next } from 'hono';
 import jwt from 'jsonwebtoken';
-import {db} from '../db';
+import { db } from '../db';
 
-export const authenticateToken = async (req: any, res: any, next: NextFunction) => {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'Access token required'
-      });
+declare module 'hono' {
+  interface ContextVariableMap {
+    user: {
+      userId: string;
+      email: string;
+      role: string;
     }
+  }
+}
 
+export const authenticateToken = async (c: Context, next: Next) => {
+  const authHeader = c.req.header('Authorization');
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return c.json({
+      success: false,
+      message: 'Access token required'
+    }, 401);
+  }
+
+  try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
-    
+
     // Get user from database to ensure they still exist
     const user = await db.user.findUnique({
       where: { id: decoded.userId },
@@ -23,48 +33,43 @@ export const authenticateToken = async (req: any, res: any, next: NextFunction) 
     });
 
     if (!user) {
-      return res.status(401).json({
+      return c.json({
         success: false,
         message: 'User not found'
-      });
+      }, 401);
     }
 
-    req.user = {
+    c.set('user', {
       userId: user.id,
       email: user.email,
       role: user.role
-    };
+    });
 
-    next();
+    await next();
   } catch (error) {
-    return res.status(403).json({
+    return c.json({
       success: false,
       message: 'Invalid or expired token'
-    });
+    }, 403);
   }
 };
 
-export const requireAdmin = async (req: any, res: any, next: NextFunction) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
+export const requireAdmin = async (c: Context, next: Next) => {
+  const user = c.get('user');
 
-    if (req.user.role !== 'ADMIN') {
-      return res.status(403).json({
-        success: false,
-        message: 'Admin access required'
-      });
-    }
-
-    next();
-  } catch (error) {
-    return res.status(500).json({
+  if (!user) {
+    return c.json({
       success: false,
-      message: 'Authorization error'
-    });
+      message: 'Authentication required'
+    }, 401);
   }
+
+  if (user.role !== 'ADMIN') {
+    return c.json({
+      success: false,
+      message: 'Admin access required'
+    }, 403);
+  }
+
+  await next();
 };

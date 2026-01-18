@@ -1,15 +1,16 @@
-import {db} from '../db';
-
+import { Context } from 'hono';
+import { db } from '../db';
 
 // Get all confirmed orders for admin
-export const getConfirmedOrders = async (req: any, res: any) => {
+export const getConfirmedOrders = async (c: Context) => {
   try {
     // Check if user is admin
-    if (!req.user || req.user.role !== 'ADMIN') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Admin access required' 
-      });
+    const admin = c.get('admin');
+    if (!admin || admin.role !== 'ADMIN') {
+      return c.json({
+        success: false,
+        message: 'Admin access required'
+      }, 403);
     }
 
     const orders = await db.order.findMany({
@@ -61,7 +62,7 @@ export const getConfirmedOrders = async (req: any, res: any) => {
       }
     });
 
-    res.status(200).json({
+    return c.json({
       success: true,
       message: "Confirmed orders retrieved successfully",
       data: {
@@ -96,47 +97,48 @@ export const getConfirmedOrders = async (req: any, res: any) => {
           deliveredAt: order.deliveredAt
         }))
       }
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Error fetching confirmed orders:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch confirmed orders', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    return c.json({
+      success: false,
+      message: 'Failed to fetch confirmed orders',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 };
 
 // Optimized route to update order shipping stage
-export const updateShippingStage = async (req: any, res: any) => {
+export const updateShippingStage = async (c: Context) => {
   try {
     // Check if user is admin
-    if (!req.user || req.user.role !== 'ADMIN') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Admin access required' 
-      });
+    const admin = c.get('admin');
+    if (!admin || admin.role !== 'ADMIN') {
+      return c.json({
+        success: false,
+        message: 'Admin access required'
+      }, 403);
     }
 
-    const { orderId } = req.params;
-    const { stage, trackingNumber, carrierName, estimatedDelivery, notes } = req.body;
+    const orderId = c.req.param('orderId');
+    const { stage, trackingNumber, carrierName, estimatedDelivery, notes } = await c.req.json();
 
     // Validate input
     if (!orderId || !stage) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Order ID and stage are required' 
-      });
+      return c.json({
+        success: false,
+        message: 'Order ID and stage are required'
+      }, 400);
     }
 
     // Valid stages in correct order
     const validStages = ['PACKED', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'];
     if (!validStages.includes(stage)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid stage. Valid stages: PACKED, SHIPPED, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED' 
-      });
+      return c.json({
+        success: false,
+        message: 'Invalid stage. Valid stages: PACKED, SHIPPED, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED'
+      }, 400);
     }
 
     // Get current order
@@ -145,21 +147,21 @@ export const updateShippingStage = async (req: any, res: any) => {
     });
 
     if (!currentOrder) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
-      });
+      return c.json({
+        success: false,
+        message: 'Order not found'
+      }, 404);
     }
 
     // Check if order can be updated to this stage
     const currentStageIndex = validStages.indexOf(currentOrder.status);
     const newStageIndex = validStages.indexOf(stage);
-    
+
     if (currentStageIndex >= newStageIndex) {
-      return res.status(400).json({ 
-        success: false, 
-        message: `Order is already at or past ${stage} stage` 
-      });
+      return c.json({
+        success: false,
+        message: `Order is already at or past ${stage} stage`
+      }, 400);
     }
 
     // Prepare update data
@@ -228,7 +230,7 @@ export const updateShippingStage = async (req: any, res: any) => {
       }
     });
 
-    res.status(200).json({
+    return c.json({
       success: true,
       message: `Order ${stage.toLowerCase()} successfully`,
       data: {
@@ -249,33 +251,34 @@ export const updateShippingStage = async (req: any, res: any) => {
           deliveredAt: updatedOrder.deliveredAt
         }
       }
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Error updating shipping stage:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update shipping stage', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    return c.json({
+      success: false,
+      message: 'Failed to update shipping stage',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 };
 
 // Get order tracking details for client
-export const getOrderTracking = async (req: any, res: any) => {
+export const getOrderTracking = async (c: Context) => {
   try {
-    const { orderId } = req.params;
-    const userId = req.user?.id;
+    const orderId = c.req.param('orderId');
+    const user = c.get('user');
+    const userId = user?.userId; // Note: auth middleware sets 'userId' in user object
 
     if (!userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentication required' 
-      });
+      return c.json({
+        success: false,
+        message: 'Authentication required'
+      }, 401);
     }
 
     const order = await db.order.findFirst({
-      where: { 
+      where: {
         id: orderId,
         userId: userId
       },
@@ -311,10 +314,10 @@ export const getOrderTracking = async (req: any, res: any) => {
     });
 
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
-      });
+      return c.json({
+        success: false,
+        message: 'Order not found'
+      }, 404);
     }
 
     // Create tracking stages in correct order
@@ -363,7 +366,7 @@ export const getOrderTracking = async (req: any, res: any) => {
       }
     ];
 
-    res.status(200).json({
+    return c.json({
       success: true,
       message: "Order tracking retrieved successfully",
       data: {
@@ -384,14 +387,14 @@ export const getOrderTracking = async (req: any, res: any) => {
           trackingStages: trackingStages
         }
       }
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Error fetching order tracking:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch order tracking', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    return c.json({
+      success: false,
+      message: 'Failed to fetch order tracking',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 };

@@ -1,10 +1,11 @@
+import { Context } from 'hono';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db';
 
-export const register = async (req: any, res: any) => {
+export const register = async (c: Context) => {
   try {
-    const userData = req.body;
+    const userData = await c.req.json();
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({
@@ -12,11 +13,10 @@ export const register = async (req: any, res: any) => {
     });
 
     if (existingUser) {
-      const response = {
+      return c.json({
         success: false,
         error: 'User with this email already exists'
-      };
-      return res.status(400).json(response);
+      }, 400);
     }
 
     // Hash password
@@ -61,30 +61,27 @@ export const register = async (req: any, res: any) => {
       { expiresIn: '7d' }
     );
 
-    const response = {
+    return c.json({
       success: true,
       message: 'User registered successfully',
       data: {
         user: { ...user, role: 'USER' },
         token
       }
-    };
-
-    res.status(201).json(response);
+    }, 201);
 
   } catch (error) {
     console.error('Registration error:', error);
-    const response = {
+    return c.json({
       success: false,
       error: 'Internal server error'
-    };
-    res.status(500).json(response);
+    }, 500);
   }
 };
 
-export const login = async (req: any, res: any) => {
+export const login = async (c: Context) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = await c.req.json();
 
     console.log('🔍 Attempting login for:', email);
     // Find user
@@ -93,22 +90,20 @@ export const login = async (req: any, res: any) => {
     });
 
     if (!user) {
-      const response = {
+      return c.json({
         success: false,
         error: 'Invalid email or password'
-      };
-      return res.status(401).json(response);
+      }, 401);
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      const response = {
+      return c.json({
         success: false,
         error: 'Invalid email or password'
-      };
-      return res.status(401).json(response);
+      }, 401);
     }
 
     // Generate JWT token
@@ -136,51 +131,47 @@ export const login = async (req: any, res: any) => {
       updatedAt: user.updatedAt
     };
 
-    const response = {
+    return c.json({
       success: true,
       message: 'Login successful',
       data: {
         user: userData,
         token
       }
-    };
-
-    res.status(200).json(response);
+    }, 200);
 
   } catch (error) {
     console.error('Login error:', error);
 
     // Check if it's a database connection error
     if (error instanceof Error && error.message.includes('Can\'t reach database server')) {
-      const response = {
+      return c.json({
         success: false,
         error: 'Database connection failed. Please check your database configuration.'
-      };
-      return res.status(500).json(response);
+      }, 500);
     }
 
-    const response = {
+    return c.json({
       success: false,
       error: 'Login failed. Please try again.'
-    };
-    res.status(500).json(response);
+    }, 500);
   }
 };
 
-export const getProfile = async (req: any, res: any) => {
+export const getProfile = async (c: Context) => {
   try {
-    const userId = (req as any).user.userId;
+    const userContext = c.get('user');
+    const userId = userContext.userId;
 
     const user = await db.user.findUnique({
       where: { id: userId }
     });
 
     if (!user) {
-      const response = {
+      return c.json({
         success: false,
         error: 'User not found'
-      };
-      return res.status(404).json(response);
+      }, 404);
     }
 
     // Return user data (excluding password)
@@ -200,27 +191,25 @@ export const getProfile = async (req: any, res: any) => {
       updatedAt: user.updatedAt
     };
 
-    const response = {
+    return c.json({
       success: true,
       data: { user: userData }
-    };
-
-    res.status(200).json(response);
+    }, 200);
 
   } catch (error) {
     console.error('Get profile error:', error);
-    const response = {
+    return c.json({
       success: false,
       error: 'Internal server error'
-    };
-    res.status(500).json(response);
+    }, 500);
   }
 };
 
-export const updateProfile = async (req: any, res: any) => {
+export const updateProfile = async (c: Context) => {
   try {
-    const userId = (req as any).user.userId;
-    const userData = req.body;
+    const userContext = c.get('user');
+    const userId = userContext.userId;
+    const userData = await c.req.json();
 
     // Update user
     const user = await db.user.update({
@@ -251,40 +240,40 @@ export const updateProfile = async (req: any, res: any) => {
       }
     });
 
-    const response = {
+    return c.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
         user: { ...user, role: 'USER' }
       }
-    };
-
-    res.status(200).json(response);
+    }, 200);
 
   } catch (error) {
     console.error('Update profile error:', error);
-    const response = {
+    return c.json({
       success: false,
       error: 'Internal server error'
-    };
-    res.status(500).json(response);
+    }, 500);
   }
 };
 
 // Get all users (Admin only)
-export const getAllUsers = async (req: any, res: any) => {
+export const getAllUsers = async (c: Context) => {
   try {
-    const { limit = 50, page = 1, search } = req.query;
-    const limitNum = parseInt(limit as string);
-    const pageNum = parseInt(page as string);
+    const limit = c.req.query('limit') || '50';
+    const page = c.req.query('page') || '1';
+    const search = c.req.query('search');
+
+    const limitNum = parseInt(limit);
+    const pageNum = parseInt(page);
     const skip = (pageNum - 1) * limitNum;
 
     // Build where clause for search
     const whereClause = search ? {
       OR: [
-        { fullName: { contains: search as string, mode: 'insensitive' as const } },
-        { email: { contains: search as string, mode: 'insensitive' as const } },
-        { phone: { contains: search as string, mode: 'insensitive' as const } },
+        { fullName: { contains: search, mode: 'insensitive' as const } },
+        { email: { contains: search, mode: 'insensitive' as const } },
+        { phone: { contains: search, mode: 'insensitive' as const } },
       ],
     } : {};
 
@@ -315,7 +304,7 @@ export const getAllUsers = async (req: any, res: any) => {
       where: whereClause,
     });
 
-    const response = {
+    return c.json({
       success: true,
       data: {
         users: users.map((user: any) => ({ ...user, role: 'USER' })),
@@ -326,16 +315,13 @@ export const getAllUsers = async (req: any, res: any) => {
           limit: limitNum,
         },
       }
-    };
-
-    res.json(response);
+    }, 200);
 
   } catch (error) {
     console.error('Error fetching users:', error);
-    const response = {
+    return c.json({
       success: false,
       error: 'Failed to fetch users'
-    };
-    res.status(500).json(response);
+    }, 500);
   }
 };

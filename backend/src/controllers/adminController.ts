@@ -1,3 +1,4 @@
+import { Context } from 'hono';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -8,16 +9,17 @@ const generateOTP = (): string => {
   return crypto.randomInt(100000, 999999).toString();
 };
 
-export const adminRegister = async (req: any, res: any) => {
+export const adminRegister = async (c: Context) => {
   try {
-    console.log('Admin registration request:', req.body);
-    const { email, password, fullName } = req.body;
+    const body = await c.req.json();
+    console.log('Admin registration request:', body);
+    const { email, password, fullName } = body;
 
     // Validate required fields
     if (!email || !password || !fullName) {
-      return res.status(400).json({
+      return c.json({
         message: 'Email, password, and full name are required'
-      });
+      }, 400);
     }
 
     // Check if admin already exists
@@ -26,9 +28,9 @@ export const adminRegister = async (req: any, res: any) => {
     });
 
     if (existingAdmin) {
-      return res.status(400).json({
+      return c.json({
         message: 'Admin with this email already exists'
-      });
+      }, 400);
     }
 
     // Hash password
@@ -55,7 +57,7 @@ export const adminRegister = async (req: any, res: any) => {
       }
     });
 
-    res.status(201).json({
+    return c.json({
       message: 'Admin registered successfully. Please use the OTP for login.',
       admin: {
         id: admin.id,
@@ -63,25 +65,25 @@ export const adminRegister = async (req: any, res: any) => {
         fullName: admin.fullName,
         otp: admin.otp // In production, send this via email/SMS
       }
-    });
+    }, 201);
 
   } catch (error) {
     console.error('Admin registration error:', error);
-    res.status(500).json({
+    return c.json({
       message: 'Internal server error'
-    });
+    }, 500);
   }
 };
 
-export const adminLogin = async (req: any, res: any) => {
+export const adminLogin = async (c: Context) => {
   try {
-    const { email, password, otp } = req.body;
+    const { email, password, otp } = await c.req.json();
 
     // Validate required fields
     if (!email || !password) {
-      return res.status(400).json({
+      return c.json({
         message: 'Email and password are required'
-      });
+      }, 400);
     }
 
     // Find admin
@@ -90,46 +92,46 @@ export const adminLogin = async (req: any, res: any) => {
     });
 
     if (!admin) {
-      return res.status(401).json({
+      return c.json({
         success: false,
         error: 'Invalid email or password'
-      });
+      }, 401);
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, admin.password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({
+      return c.json({
         success: false,
         error: 'Invalid email or password'
-      });
+      }, 401);
     }
 
     // Check if it's first login - OTP required
     if (admin.isFirstLogin) {
       if (!otp) {
-        return res.status(400).json({
+        return c.json({
           success: false,
           error: 'OTP is required for first login',
           requiresOTP: true
-        });
+        }, 400);
       }
 
       // Verify OTP for first login
       if (admin.otp !== otp) {
-        return res.status(401).json({
+        return c.json({
           success: false,
           error: 'Invalid OTP'
-        });
+        }, 401);
       }
 
       // Mark as not first login and clear OTP
       await db.admin.update({
         where: { id: admin.id },
-        data: { 
+        data: {
           otp: null,
-          isFirstLogin: false 
+          isFirstLogin: false
         }
       });
     }
@@ -137,9 +139,9 @@ export const adminLogin = async (req: any, res: any) => {
     // Generate JWT token
     const secret = process.env.JWT_SECRET || 'your-secret-key';
     const token = jwt.sign(
-      { 
-        adminId: admin.id, 
-        email: admin.email, 
+      {
+        adminId: admin.id,
+        email: admin.email,
         role: 'ADMIN',
         type: 'admin'
       },
@@ -156,27 +158,44 @@ export const adminLogin = async (req: any, res: any) => {
       isFirstLogin: admin.isFirstLogin
     };
 
-    res.status(200).json({
+    return c.json({
       success: true,
       message: 'Admin login successful',
       data: {
         admin: adminData,
         token
       }
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Admin login error:', error);
-    res.status(500).json({
+    return c.json({
       success: false,
       error: 'Internal server error'
-    });
+    }, 500);
   }
 };
 
-export const adminProfile = async (req: any, res: any) => {
+export const adminProfile = async (c: Context) => {
   try {
-    const adminId = (req as any).user.adminId;
+    const adminInfo = c.get('admin'); // Assuming adminAuth middleware sets this? Or if this is manual
+    // If this route is protected by adminAuth, we can use c.get('admin').
+    // If NOT protected by default, we'd need to parse token again.
+    // The original code used (req as any).user.adminId which implies authenticateToken middleware or similar.
+    // But route file uses adminAuth middleware which sets req.admin.
+    // So c.get('admin') is correct if middleware is used.
+
+    // NOTE: adminAuth uses c.set('admin', ...).
+
+    // However, if the middleware wasn't used, this would fail.
+    // Assuming middleware is used.
+
+    const adminId = adminInfo?.id;
+
+    if (!adminId) {
+      // Maybe token didn't have it or middleware not used
+      return c.json({ message: 'Unauthorized' }, 401);
+    }
 
     const admin = await db.admin.findUnique({
       where: { id: adminId },
@@ -190,31 +209,31 @@ export const adminProfile = async (req: any, res: any) => {
     });
 
     if (!admin) {
-      return res.status(404).json({
+      return c.json({
         message: 'Admin not found'
-      });
+      }, 404);
     }
 
-    res.status(200).json({
+    return c.json({
       admin
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Get admin profile error:', error);
-    res.status(500).json({
+    return c.json({
       message: 'Internal server error'
-    });
+    }, 500);
   }
 };
 
-export const checkLoginRequirements = async (req: any, res: any) => {
+export const checkLoginRequirements = async (c: Context) => {
   try {
-    const { email } = req.body;
+    const { email } = await c.req.json();
 
     if (!email) {
-      return res.status(400).json({
+      return c.json({
         message: 'Email is required'
-      });
+      }, 400);
     }
 
     // Find admin
@@ -229,13 +248,13 @@ export const checkLoginRequirements = async (req: any, res: any) => {
     });
 
     if (!admin) {
-      return res.status(404).json({
+      return c.json({
         success: false,
         error: 'Admin not found'
-      });
+      }, 404);
     }
 
-    res.status(200).json({
+    return c.json({
       success: true,
       data: {
         email: admin.email,
@@ -243,25 +262,25 @@ export const checkLoginRequirements = async (req: any, res: any) => {
         requiresOTP: admin.isFirstLogin,
         otp: admin.isFirstLogin ? admin.otp : null
       }
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Check login requirements error:', error);
-    res.status(500).json({
+    return c.json({
       success: false,
       error: 'Internal server error'
-    });
+    }, 500);
   }
 };
 
-export const generateNewOTP = async (req: any, res: any) => {
+export const generateNewOTP = async (c: Context) => {
   try {
-    const { email } = req.body;
+    const { email } = await c.req.json();
 
     if (!email) {
-      return res.status(400).json({
+      return c.json({
         message: 'Email is required'
-      });
+      }, 400);
     }
 
     // Find admin
@@ -270,9 +289,9 @@ export const generateNewOTP = async (req: any, res: any) => {
     });
 
     if (!admin) {
-      return res.status(404).json({
+      return c.json({
         message: 'Admin not found'
-      });
+      }, 404);
     }
 
     // Generate new OTP
@@ -284,21 +303,21 @@ export const generateNewOTP = async (req: any, res: any) => {
       data: { otp: newOTP }
     });
 
-    res.status(200).json({
+    return c.json({
       message: 'New OTP generated successfully',
       otp: newOTP // In production, send this via email/SMS
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Generate OTP error:', error);
-    res.status(500).json({
+    return c.json({
       message: 'Internal server error'
-    });
+    }, 500);
   }
 };
 
 // Get all orders for admin
-export const getAllOrders = async (req: any, res: any) => {
+export const getAllOrders = async (c: Context) => {
   try {
     // Get all orders with order items and user details
     const orders = await db.order.findMany({
@@ -374,53 +393,54 @@ export const getAllOrders = async (req: any, res: any) => {
       }
     }));
 
-    res.status(200).json({
+    return c.json({
       success: true,
       message: "All orders retrieved successfully",
       data: {
         orders: formattedOrders,
         totalOrders: orders.length
       }
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Error getting all orders:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to get orders', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    return c.json({
+      success: false,
+      message: 'Failed to get orders',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 };
 
 // Update order status
-export const updateOrderStatus = async (req: any, res: any) => {
+export const updateOrderStatus = async (c: Context) => {
   try {
-    // Check if user is admin - use req.admin instead of req.user
-    if (!req.admin || req.admin.role !== 'ADMIN') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Admin access required' 
-      });
+    // Check if user is admin - use c.get('admin') instead of req.admin
+    const admin = c.get('admin');
+    if (!admin || admin.role !== 'ADMIN') {
+      return c.json({
+        success: false,
+        message: 'Admin access required'
+      }, 403);
     }
 
-    const { orderId } = req.params;
-    const { status } = req.body;
+    const orderId = c.req.param('orderId');
+    const { status } = await c.req.json();
 
     // Validate input
     if (!orderId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Order ID is required' 
-      });
+      return c.json({
+        success: false,
+        message: 'Order ID is required'
+      }, 400);
     }
 
     // Validate against full enum from schema
     if (!status || !['PENDING', 'CONFIRMED', 'PACKED', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'].includes(status)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Valid status is required' 
-      });
+      return c.json({
+        success: false,
+        message: 'Valid status is required'
+      }, 400);
     }
 
     // Update order status
@@ -458,7 +478,7 @@ export const updateOrderStatus = async (req: any, res: any) => {
       }
     });
 
-    res.status(200).json({
+    return c.json({
       success: true,
       message: "Order status updated successfully",
       data: {
@@ -470,18 +490,14 @@ export const updateOrderStatus = async (req: any, res: any) => {
           updatedAt: updatedOrder.updatedAt
         }
       }
-    });
+    }, 200);
 
   } catch (error) {
     console.error('Error updating order status:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update order status', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
+    return c.json({
+      success: false,
+      message: 'Failed to update order status',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 };
-
-// Ship order
-// Note: shipOrder function moved to shippingController.ts for better organization
-// Use updateShippingStage from shippingController instead

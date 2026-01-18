@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Hono } from 'hono';
 import authRoutes from './auth';
 import productRoutes from './products';
 import orderRoutes from './orders';
@@ -6,14 +6,16 @@ import adminRoutes from './admin';
 import cartRoutes from './cart';
 import shippingRoutes from './shipping';
 
-const router = Router();
+const app = new Hono();
 
-// Mount route modules
-router.use('/auth', authRoutes);
-router.use('/products', productRoutes);
-router.use('/orders', orderRoutes);
-router.use('/admin', adminRoutes);
-router.use('/cart', cartRoutes);
-router.use('/shipping', shippingRoutes);
+// We need to make sure imported modules are Hono instances
+// Assuming we will refactor them to export 'default new Hono()'
 
-export default router;
+app.route('/auth', authRoutes);
+app.route('/products', productRoutes);
+app.route('/orders', orderRoutes);
+app.route('/admin', adminRoutes);
+app.route('/cart', cartRoutes);
+app.route('/shipping', shippingRoutes);
+
+export default app;

@@ -1,10 +1,9 @@
-import { Router } from 'express';
-import { 
-  adminRegister, 
-  adminLogin, 
-  adminProfile, 
-  generateNewOTP,
+import { Hono } from 'hono';
+import {
+  adminRegister,
+  adminLogin,
   checkLoginRequirements,
+  generateNewOTP,
   getAllOrders,
   updateOrderStatus
 } from '../controllers/adminController';
@@ -12,23 +11,25 @@ import { getConfirmedOrders } from '../controllers/shippingController';
 import { getAdminProducts } from '../controllers/productController';
 import { adminAuth } from '../middleware/adminAuth';
 
-
-
-const router = Router();
+const app = new Hono();
 
 // Public admin routes
-router.post('/register', adminRegister);
-router.post('/login', adminLogin);
-router.post('/check-login-requirements', checkLoginRequirements);
-router.post('/generate-otp', generateNewOTP);
+app.post('/register', adminRegister);
+app.post('/login', adminLogin);
+app.post('/check-login-requirements', checkLoginRequirements);
+app.post('/generate-otp', generateNewOTP);
 
-// Public data routes (no auth required)
-router.get('/orders', getAllOrders);
-router.get('/orders/confirmed', adminAuth, getConfirmedOrders);
-router.get('/products', getAdminProducts);
+// Public data routes (wait, are they public? Original code said yes, but implementation might expect admin??)
+// Original: router.get('/orders', getAllOrders);
+// getAllOrders implementation does NOT check for admin. So it's effectively public??
+// The original comment said "Public data routes (no auth required)".
+// That sounds dangerous but I will keep parity.
+app.get('/orders', getAllOrders);
+
+app.get('/orders/confirmed', adminAuth, getConfirmedOrders);
+app.get('/products', getAdminProducts);
 
 // Protected admin routes
-router.put('/orders/:orderId/status', adminAuth, updateOrderStatus);
-// Note: Shipping routes moved to shipping.ts for better organization
+app.put('/orders/:orderId/status', adminAuth, updateOrderStatus);
 
-export default router;
+export default app;
