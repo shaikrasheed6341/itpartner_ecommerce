@@ -74,6 +74,7 @@ export const register = async (c: Context) => {
     console.error('Registration error:', error);
     return c.json({
       success: false,
+      
       error: 'Internal server error'
     }, 500);
   }

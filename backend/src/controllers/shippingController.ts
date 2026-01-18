@@ -69,6 +69,7 @@ export const getConfirmedOrders = async (c: Context) => {
         orders: orders.map((order: any) => ({
           id: order.id,
           orderNumber: order.orderNumber,
+          
           status: order.status,
           totalAmount: order.totalAmount,
           currency: order.currency,
