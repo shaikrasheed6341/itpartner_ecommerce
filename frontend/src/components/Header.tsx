@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 import { Menu, X, Shield, User, LogOut, ChevronDown, Phone, MapPin } from 'lucide-react'
-// import { useCart } from '@/cart/Cartcontext'
+import { useCart } from '@/cart/Cartcontext'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect, useRef } from 'react'
+import { ShoppingCart } from 'lucide-react'
+
 
 export function Header() {
   const { isAuthenticated, user, logout, isAdmin } = useAuth()
@@ -44,14 +46,14 @@ export function Header() {
     }
   }, [user])
 
-  // // Safely get cart context
-  // let cart = { totalItems: 0 }
-  // try {
-  //   const cartContext = useCart()
-  //   cart = cartContext.cart
-  // } catch (error) {
-  //   console.warn('Cart context not available:', error)
-  // }
+  // Safely get cart context
+  let cart = { totalItems: 0 }
+  try {
+    const cartContext = useCart()
+    cart = cartContext.cart
+  } catch (error) {
+    console.warn('Cart context not available:', error)
+  }
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -111,11 +113,11 @@ export function Header() {
             <Link to="/" className="transition-colors hover:text-violet-800">Home</Link>
             <Link to="/dashboard" className="transition-colors hover:text-violet-800">Services</Link>
             <Link to="/about" className="transition-colors hover:text-violet-800">About</Link>
-            {/* <Link to="/products" className="transition-colors hover:text-violet-800">Buy</Link> */}
-            {/* <Link to="/orders" className="transition-colors hover:text-violet-800">Orders</Link> */}
+            <Link to="/products" className="transition-colors hover:text-violet-800">Buy</Link>
+            <Link to="/orders" className="transition-colors hover:text-violet-800">Orders</Link>
           </nav>
 
-          {/* <Link
+          <Link
             to="/cart"
             className="relative inline-flex items-center justify-center rounded-md text-sm font-medium hover:text-violet-800 transition-colors h-10 w-10"
           >
@@ -125,7 +127,7 @@ export function Header() {
                 {cart.totalItems > 99 ? '99+' : cart.totalItems}
               </span>
             )}
-          </Link> */}
+          </Link>
         </div>
 
         {/* Right: User Actions */}
