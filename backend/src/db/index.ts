@@ -11,13 +11,22 @@ declare global {
   var drizzleDb: ReturnType<typeof drizzle> | undefined;
 }
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is required but missing');
-}
+// if (!process.env.DATABASE_URL) {
+//   throw new Error('DATABASE_URL is required but missing');
+// }
 
 // Create a single shared pg Pool and drizzle instance. Cache both in the global object
 // so restarting in dev doesn't recreate new connection pools repeatedly.
-const pool = (global as any).__pgPool ?? new Pool({ connectionString: process.env.DATABASE_URL });
+const connectionString = process.env.DATABASE_URL;
+console.log('DB Connection String present:', !!connectionString);
+if (connectionString) {
+  console.log('DB Connection String start:', connectionString.substring(0, 15) + '...');
+}
+
+const pool = (global as any).__pgPool ?? new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false } // Required for Supabase/Cloudflare usually
+});
 const dbInstance = global.drizzleDb ?? drizzle(pool);
 
 if (process.env.NODE_ENV !== "production") {

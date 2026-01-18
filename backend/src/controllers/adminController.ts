@@ -167,11 +167,13 @@ export const adminLogin = async (c: Context) => {
       }
     }, 200);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Admin login error:', error);
     return c.json({
       success: false,
-      error: 'Internal server error'
+      error: 'Internal server error',
+      details: error.message,
+      stack: error.stack
     }, 500);
   }
 };

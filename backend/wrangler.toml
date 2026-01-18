@@ -1,0 +1,20 @@
+name = "backend"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Add environment variables here if needed
+PORT=5000
+JWT_SECRET="your_jwt_secret_key"
+FRONTEND_URL="http://localhost:3001"
+
+# DATABASE_URL="postgresql://postgres.mvyyngeqtyupwnklrmze:grXynd8Bco4KZ23r@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
+RAZORPAY_KEY_ID="rzp_test_RxRSsRakxFru47"
+# DATABASE_URL="postgresql://postgres.mvyyngeqtyupwnklrmze:shaikrasheed@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
+
+# DATABASE_URL="postgresql://postgres.mvyyngeqtyupwnklrmze:shaikrasheed@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres"
+
+RAZORPAY_KEY_SECRET="LilMl8EIupmU0Gx6afLDWz15"
+NODE_ENV="development"
+DATABASE_URL="postgresql://postgres.lwfzgixipxbnyqgddlhv:shaikrasheed@aws-1-ap-south-1.pooler.supabase.com:5432/postgres"

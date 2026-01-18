@@ -1,0 +1,19 @@
+
+ ⛅️ wrangler 4.59.2
+───────────────────
+Total Upload: 1055.82 KiB / gzip: 195.88 KiB
+Worker Startup Time: 44 ms
+Your Worker has access to the following bindings:
+Binding                                                                   Resource                  
+env.PORT (5000)                                                           Environment Variable      
+env.JWT_SECRET ("your_jwt_secret_key")                                    Environment Variable      
+env.FRONTEND_URL ("http://localhost:3001")                                Environment Variable      
+env.RAZORPAY_KEY_ID ("rzp_test_RxRSsRakxFru47")                           Environment Variable      
+env.RAZORPAY_KEY_SECRET ("LilMl8EIupmU0Gx6afLDWz15")                      Environment Variable      
+env.NODE_ENV ("development")                                              Environment Variable      
+env.DATABASE_URL ("postgresql://postgres.lwfzgixipxbnyqg...")             Environment Variable      
+
+Uploaded backend (10.95 sec)
+Deployed backend triggers (5.22 sec)
+  https://backend.shaikrasheed634.workers.dev
+Current Version ID: a20726af-c63f-49ad-b46c-c758fad775c5

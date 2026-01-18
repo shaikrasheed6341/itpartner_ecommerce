@@ -27,9 +27,14 @@ app.route('/api/v1', routes);
 const port = 5000;
 console.log(`Server is running on port ${port}`);
 
-serve({
-  fetch: app.fetch,
-  port
-});
+// Only run the server if executed directly (e.g., via npm run dev/start) and not imported as a module (e.g., by Wrangler)
+const isDevOrStart = process.env.npm_lifecycle_event === 'dev' || process.env.npm_lifecycle_event === 'start';
+
+if (isDevOrStart) {
+  serve({
+    fetch: app.fetch,
+    port
+  });
+}
 
 export default app;
