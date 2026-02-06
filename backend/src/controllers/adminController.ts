@@ -173,6 +173,11 @@ export const adminLogin = async (c: Context) => {
       success: false,
       error: 'Internal server error',
       details: error.message,
+      cause: error.cause ? {
+        message: (error.cause as any).message,
+        stack: (error.cause as any).stack,
+        ...error.cause as any
+      } : undefined,
       stack: error.stack
     }, 500);
   }
@@ -313,7 +318,6 @@ export const generateNewOTP = async (c: Context) => {
   } catch (error) {
     console.error('Generate OTP error:', error);
     return c.json({
-      message: 'Internal server error'
     }, 500);
   }
 };

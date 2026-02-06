@@ -17,4 +17,4 @@ RAZORPAY_KEY_ID="rzp_test_RxRSsRakxFru47"
 
 RAZORPAY_KEY_SECRET="LilMl8EIupmU0Gx6afLDWz15"
 NODE_ENV="development"
-DATABASE_URL="postgresql://postgres.lwfzgixipxbnyqgddlhv:shaikrasheed@aws-1-ap-south-1.pooler.supabase.com:5432/postgres"
+DATABASE_URL="postgresql://postgres.lwfzgixipxbnyqgddlhv:shaikrasheed@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"

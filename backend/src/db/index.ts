@@ -27,6 +27,13 @@ const pool = (global as any).__pgPool ?? new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false } // Required for Supabase/Cloudflare usually
 });
+
+// Attempt connection verification
+pool.query('SELECT 1').then(() => {
+  console.log('DB Connection successful');
+}).catch((err: any) => {
+  console.error('DB Connection failed:', err);
+});
 const dbInstance = global.drizzleDb ?? drizzle(pool);
 
 if (process.env.NODE_ENV !== "production") {
